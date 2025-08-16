@@ -1,0 +1,95 @@
+# Python cache and venv
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+ENV/
+
+# IDE/project files
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+
+# Model/data cache
+model_cache/
+unwanted/
+Report/
+
+# Large datasets not referenced by code
+ipc_law.txt
+train.jsonl
+
+# FAISS/KB backups (keep only LegalKB_FAISS/ipc_embed_db/index.faiss and index.pkl)
+faiss_index/
+fa_bck/
+
+# Large model files (these should not be pushed to GitHub)
+models/*.bin
+models/*.gguf
+models/*.safetensors
+models/*.h5
+models/*.pkl
+models/*.pt
+models/*.pth
+
+# Keep only essential model config files
+!models/*/config.json
+!models/*/tokenizer_config.json
+!models/*/vocab.txt
+!models/*/special_tokens_map.json
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Misc
+*.log
+*.bak
+*.tmp
+*.temp
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# PEP 582
+__pypackages__/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json

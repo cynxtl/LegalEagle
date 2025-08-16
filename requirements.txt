@@ -1,0 +1,13 @@
+streamlit==1.32.0
+python-dotenv==1.0.0
+PyPDF2==3.0.1
+python-docx==1.1.0
+langchain==0.1.12
+langchain-community==0.0.28
+langchain-core==0.1.31
+faiss-cpu==1.7.4
+ctransformers==0.2.27
+sentence-transformers==2.5.1
+torch==2.2.0
+numpy==1.24.3
+transformers==4.38.2

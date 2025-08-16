@@ -1,0 +1,29 @@
+# Legal Data Sources for Legal Chatbot
+
+This file documents the legal data sources and knowledge base files used in the Legal Chatbot application (LegalEagle).
+
+## 1. Legal Terminology Dictionary
+- **Local File**: mini_dataset/mini_legal_dictionary.txt
+- **Description**: List of Indian legal terms and phrases for detecting legal terminology in user queries.
+
+## 2. Legal Case Samples
+- **Local File**: mini_dataset/mini_legal_cases.txt
+- **Description**: Sample legal cases used as part of the knowledge base for answering legal queries.
+
+## 3. Indian Legal Q&A
+- **Local File**: mini_dataset/mini_train.jsonl
+- **Description**: Indian law Q&A pairs extracted from public datasets and formatted for retrieval.
+
+## 4. Knowledge Base Index
+- **Local Folder**: LegalKB_FAISS/ipc_embed_db/
+  - **index.faiss**
+  - **index.pkl**
+- **Description**: FAISS vector index built from the above datasets for fast semantic retrieval.
+
+## Integration
+- All above files are loaded and embedded using InLegalBERT in `legal_chatbot.py`.
+- The FAISS index enables fast retrieval for user queries.
+
+---
+
+**Note:** Only the minimal, referenced datasets are included for GitHub. Large datasets and additional files are excluded for portability.
