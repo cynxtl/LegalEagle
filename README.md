@@ -2,23 +2,74 @@
 
 A powerful, privacy-focused chatbot that helps you understand Indian legal documents and law. Runs fully locally—no cloud APIs required.
 
+**Now with a modern Next.js frontend UI!** 🎉
+
 ## Features
 
-- Upload and analyze PDF/DOCX legal documents
-- Interactive chat interface for Indian law (statutes, Q&A, case law)
-- Local AI-powered analysis (no internet needed after setup)
-- Specialized for Indian law: statutes, Q&A, legal dictionary
-- Memory of previous conversations
-- Fast semantic search using FAISS
+- 🎨 **Modern Next.js Frontend** - Beautiful, responsive chat interface with fixed sidebars
+- 📄 Upload and analyze PDF/DOCX legal documents
+- 💬 Interactive chat interface for Indian law (statutes, Q&A, case law)
+- 🔍 Fast semantic search using FAISS
+- 💾 Memory of previous conversations
+- 🏛️ Specialized for Indian law: statutes, Q&A, legal dictionary
+- 🔒 Local AI-powered analysis (no internet needed after setup)
 
-## Setup
+## Project Structure
 
-1. Clone this repository
+```
+Law.ai/
+├── frontend/                 # Next.js 16 React frontend (NEW!)
+│   ├── app/                 # Pages (chat, documents, settings)
+│   ├── components/          # Reusable UI components
+│   ├── hooks/              # React hooks (useChat, etc.)
+│   ├── lib/                # Utilities and types
+│   ├── public/             # Static assets
+│   └── styles/             # Tailwind CSS
+├── app.py                   # Streamlit backend
+├── requirements.txt         # Python dependencies
+└── README.md               # This file
+```
+
+## Quick Start
+
+### Backend Setup (Streamlit)
+
+1. Clone this repository:
+   ```bash
+   git clone <repo-url>
+   cd Law.ai
+   ```
+
 2. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
-3. Download required models (see below)
+
+3. Download required models (see `models/` directory)
+
+4. Run the app:
+   ```bash
+   streamlit run app.py
+   ```
+
+### Frontend Setup (Next.js)
+
+1. Navigate to frontend directory:
+   ```bash
+   cd frontend
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Start development server:
+   ```bash
+   npm run dev
+   ```
+
+4. Open http://localhost:3000 in your browser
 
 ## Hardware Requirements
 
@@ -26,14 +77,23 @@ A powerful, privacy-focused chatbot that helps you understand Indian legal docum
 - NVIDIA GPU with 8GB+ VRAM (recommended for speed)
 - ~20GB free disk space for models and index
 
-## Usage
+## Features in Detail
 
-1. Run the app:
-   ```bash
-   streamlit run app.py
-   ```
-2. Upload your legal documents (PDF/DOCX) in the UI
-3. Ask questions about Indian law, statutes, or your uploaded docs
+### Frontend (Next.js)
+- ✅ Fixed left sidebar with chat history navigation
+- ✅ Fixed right panel with sources and citations (desktop)
+- ✅ Responsive design (mobile, tablet, desktop)
+- ✅ Dark mode support
+- ✅ Document upload interface
+- ✅ Settings page for user preferences
+- ✅ Invisible scrollbars for clean UI
+- ✅ Real-time chat with typing indicators
+
+### Backend (Streamlit)
+- Legal document analysis and Q&A
+- Semantic search with FAISS
+- Multi-turn conversations
+- Document upload and indexing
 
 ## Data & Models
 
@@ -54,10 +114,48 @@ A powerful, privacy-focused chatbot that helps you understand Indian legal docum
 - Paste a clause from a contract for analysis
 
 ## Technical Stack
+
+### Backend
 - Streamlit (UI)
 - LangChain (reasoning, chains)
 - FAISS (vector search)
 - InLegalBERT (embeddings)
+
+### Frontend
+- Next.js 16 (React framework)
+- React 19 (UI library)
+- Tailwind CSS v4 (styling)
+- TypeScript 5.7 (type safety)
+- Shadcn/UI (components)
+
+## Roadmap
+
+- [ ] Backend API integration
+- [ ] Authentication & user accounts
+- [ ] Multi-language support
+- [ ] Export to PDF/Word
+- [ ] Collaboration features
+- [ ] Mobile app (React Native)
+
+## Contributing
+
+Pull requests are welcome! Please ensure:
+1. Code is well-typed (TypeScript)
+2. Components are reusable
+3. Styling uses Tailwind CSS
+4. Documentation is updated
+
+## License
+
+MIT License - see LICENSE file for details
+
+## Support
+
+For issues, questions, or feature requests, please open a GitHub issue.
+
+---
+
+**Made with ❤️ for legal professionals in India**
 - Mistral-7B (LLM)
 
 ## Disclaimer

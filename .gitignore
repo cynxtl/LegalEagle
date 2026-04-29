@@ -76,7 +76,7 @@ __pypackages__/
 celerybeat-schedule
 celerybeat.pid
 
-# SageMath parsed files
+# SageMaker parsed files
 *.sage.py
 
 # Spyder project settings
@@ -93,3 +93,21 @@ celerybeat.pid
 .mypy_cache/
 .dmypy.json
 dmypy.json
+
+# Node.js / Next.js
+node_modules/
+.next/
+out/
+build/
+*.tsbuildinfo
+.npm
+.eslintcache
+.env*.local
+
+# Next.js specific
+.vercel/
+
+# IDE
+.DS_Store
+*.pem
+
