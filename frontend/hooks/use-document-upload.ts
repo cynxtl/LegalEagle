@@ -48,32 +48,42 @@ export function useDocumentUpload(initialFiles: UploadedDoc[] = []) {
           uploadProgress: 0,
         }))
 
-        // Placeholder for API call
-        // const formData = new FormData()
-        // formData.append("file", file)
-        // const response = await fetch("/api/documents/upload", {
-        //   method: "POST",
-        //   body: formData,
-        // })
-        // const data = await response.json()
+        // Show initial progress
+        setState((prev) => ({ ...prev, uploadProgress: 20 }))
 
-        // Simulate upload progress
-        for (let i = 0; i <= 100; i += 10) {
-          setState((prev) => ({
-            ...prev,
-            uploadProgress: i,
-          }))
-          await new Promise((resolve) => setTimeout(resolve, 100))
+        // Upload to FastAPI backend
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"
+        const formData = new FormData()
+        formData.append("file", file)
+
+        setState((prev) => ({ ...prev, uploadProgress: 40 }))
+
+        const response = await fetch(`${API_URL}/upload`, {
+          method: "POST",
+          body: formData,
+        })
+
+        setState((prev) => ({ ...prev, uploadProgress: 80 }))
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => null)
+          throw new Error(
+            errorData?.detail || `Upload failed: ${response.status} ${response.statusText}`
+          )
         }
 
-        // Create mock uploaded doc
+        const data = await response.json()
+
+        setState((prev) => ({ ...prev, uploadProgress: 100 }))
+
+        // Map backend response to UploadedDoc type
         const newDoc: UploadedDoc = {
-          id: `doc-${Date.now()}`,
-          name: file.name,
-          size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
-          pages: Math.ceil(file.size / 10000), // Mock page count
+          id: data.id || `doc-${Date.now()}`,
+          name: data.name || file.name,
+          size: data.size || `${(file.size / 1024 / 1024).toFixed(1)} MB`,
+          pages: data.pages || Math.ceil(file.size / 10000),
           uploadedAt: new Date().toLocaleString(),
-          status: "processing",
+          status: data.status || "processing",
           category: "Contract",
         }
 

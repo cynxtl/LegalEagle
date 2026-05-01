@@ -70,21 +70,53 @@ export function useChat(initialMessages: Message[] = []) {
 
         addMessage(userMessage)
 
-        // Simulate API delay
-        await new Promise((resolve) => setTimeout(resolve, 1500))
+        // Build chat history from existing messages for stateless backend
+        const chatHistory = state.messages
+          .concat(userMessage)
+          .map((m) => ({ role: m.role, content: m.content }))
 
-        // Mock assistant response
+        // Call the FastAPI backend
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"
+        const response = await fetch(`${API_URL}/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: content,
+            category: category || null,
+            chat_history: chatHistory,
+          }),
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => null)
+          throw new Error(
+            errorData?.detail || `Backend error: ${response.status} ${response.statusText}`
+          )
+        }
+
+        const data = await response.json()
+
+        // Map backend response to frontend Message type
         const assistantMessage: Message = {
           id: `msg-${Date.now() + 1}`,
           role: "assistant",
-          content: `This is a response to: "${content.substring(0, 50)}..."\n\nConnect your backend API when ready.`,
+          content: data.answer,
           timestamp: new Date().toLocaleTimeString("en-US", {
             hour: "2-digit",
             minute: "2-digit",
           }),
-          confidence: "medium",
+          confidence: data.confidence || "medium",
           category: category as any,
-          sources: [],
+          sources: (data.sources || []).map((src: any) => ({
+            id: src.id,
+            title: src.title || "Retrieved Document",
+            citation: src.citation || "",
+            jurisdiction: src.jurisdiction || "",
+            year: src.year || 0,
+            excerpt: src.excerpt || "",
+            url: src.url,
+            type: src.type || "retrieved_chunk",
+          })),
         }
 
         addMessage(assistantMessage)
