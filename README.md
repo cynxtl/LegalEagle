@@ -1,162 +1,148 @@
-# LegalEagle: Indian Law Document & Query Chatbot
+# LegalEagle
 
-A powerful, privacy-focused chatbot that helps you understand Indian legal documents and law. Runs fully locally—no cloud APIs required.
+LegalEagle is a local-first Indian legal research assistant. It combines a Next.js chat interface with a FastAPI retrieval backend that searches a FAISS knowledge base and generates grounded legal answers using local model weights.
 
-**Now with a modern Next.js frontend UI!** 🎉
+> LegalEagle is an informational research tool. It does not provide legal advice. Users should consult a qualified legal professional for matter-specific guidance.
 
 ## Features
 
-- 🎨 **Modern Next.js Frontend** - Beautiful, responsive chat interface with fixed sidebars
-- 📄 Upload and analyze PDF/DOCX legal documents
-- 💬 Interactive chat interface for Indian law (statutes, Q&A, case law)
-- 🔍 Fast semantic search using FAISS
-- 💾 Memory of previous conversations
-- 🏛️ Specialized for Indian law: statutes, Q&A, legal dictionary
-- 🔒 Local AI-powered analysis (no internet needed after setup)
+- Chat interface for Indian legal questions
+- Retrieval-augmented generation over a local FAISS index
+- Source-aware responses shaped for frontend citation cards
+- PDF, DOCX, and TXT document upload endpoint
+- Demo mode for development without model weights
+- Local model paths for InLegalBERT embeddings and Mistral GGUF generation
+- Modern Next.js app shell with chat, documents, sources, and settings pages
 
-## Project Structure
+## Repository Structure
 
-```
-Law.ai/
-├── frontend/                 # Next.js 16 React frontend (NEW!)
-│   ├── app/                 # Pages (chat, documents, settings)
-│   ├── components/          # Reusable UI components
-│   ├── hooks/              # React hooks (useChat, etc.)
-│   ├── lib/                # Utilities and types
-│   ├── public/             # Static assets
-│   └── styles/             # Tailwind CSS
-├── app.py                   # Streamlit backend
-├── requirements.txt         # Python dependencies
-└── README.md               # This file
+```text
+LegalEagle/
+  backend/                 FastAPI API service
+    app/
+      routes/              /chat, /upload, /health
+      services/rag/        Embedding, retrieval, loading, RAG pipeline
+      services/llm/        Local LLM generation wrapper
+      models/              Pydantic API schemas
+      core/                Settings and model validation
+  frontend/                Next.js + React + TypeScript UI
+    app/                   App routes
+    components/            Legal UI and reusable UI components
+    hooks/                 Chat, upload, and settings hooks
+    lib/                   Shared frontend types and sample data
+  LegalKB_FAISS/           Local FAISS index files
+  mini_dataset/            Small legal dataset used for demos/indexing
+  models/                  Local model folders; large weights are not committed
+  docs/                    Project documentation
 ```
 
 ## Quick Start
 
-### Backend Setup (Streamlit)
+### 1. Backend
 
-1. Clone this repository:
-   ```bash
-   git clone <repo-url>
-   cd Law.ai
-   ```
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r backend/requirements.txt
+set LEGALEAGLE_DEMO_MODE=true
+python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
+```
 
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+Open the API docs at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).
 
-3. Download required models (see `models/` directory)
+Demo mode lets the backend start even when large model weights are missing.
 
-4. Run the app:
-   ```bash
-   streamlit run app.py
-   ```
+### 2. Frontend
 
-### Frontend Setup (Next.js)
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-1. Navigate to frontend directory:
-   ```bash
-   cd frontend
-   ```
+Open [http://localhost:3000](http://localhost:3000).
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+If your backend is not running on `http://127.0.0.1:8000`, create `frontend/.env.local`:
 
-3. Start development server:
-   ```bash
-   npm run dev
-   ```
+```env
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
+```
 
-4. Open http://localhost:3000 in your browser
+## Required Model Files
 
-## Hardware Requirements
+Large model weights are intentionally not stored in Git. The current backend expects:
 
-- 16GB+ RAM recommended
-- NVIDIA GPU with 8GB+ VRAM (recommended for speed)
-- ~20GB free disk space for models and index
+- `models/InLegalBERT/pytorch_model.bin` or `models/InLegalBERT/model.safetensors`
+- `models/Mistral-7B-Instruct-v0.2-GGUF/mistral-7b-instruct-v0.2.Q4_K_M.gguf`
 
-## Features in Detail
+At the time of documentation, the repository contains configuration/tokenizer placeholders but may not contain the actual weights. See [docs/MODELS.md](docs/MODELS.md) for download commands and validation notes.
 
-### Frontend (Next.js)
-- ✅ Fixed left sidebar with chat history navigation
-- ✅ Fixed right panel with sources and citations (desktop)
-- ✅ Responsive design (mobile, tablet, desktop)
-- ✅ Dark mode support
-- ✅ Document upload interface
-- ✅ Settings page for user preferences
-- ✅ Invisible scrollbars for clean UI
-- ✅ Real-time chat with typing indicators
+## API Contract
 
-### Backend (Streamlit)
-- Legal document analysis and Q&A
-- Semantic search with FAISS
-- Multi-turn conversations
-- Document upload and indexing
+The frontend expects chat responses in this shape:
 
-## Data & Models
+```json
+{
+  "answer": "string",
+  "confidence": "high | medium | low",
+  "sources": [
+    {
+      "id": "src-123",
+      "title": "Retrieved Document",
+      "citation": null,
+      "jurisdiction": null,
+      "year": null,
+      "excerpt": "Source text used by the answer",
+      "url": null,
+      "type": "retrieved_chunk"
+    }
+  ]
+}
+```
 
-- Minimal Indian legal datasets in `mini_dataset/`
-- Legal knowledge base index in `LegalKB_FAISS/ipc_embed_db/`
-- Local models required in `models/`:
-  - `InLegalBERT` (for embeddings)
-  - `Mistral-7B-Instruct-v0.2-GGUF` (for text generation)
+The current FAISS index mostly stores raw text chunks, so the backend uses fallback metadata when richer citation fields are unavailable. See [docs/API.md](docs/API.md).
 
-> **Note:** Large model files are not included in the repo. Download instructions are provided in the `models/` directory or see project wiki.
+## Current MVP Decisions
 
-## Example Questions
+- Authentication: not required for local MVP; production should add API key or user auth.
+- CORS: `allow_origins=["*"]` is acceptable only for local development/demo.
+- Chat history: frontend sends relevant conversation context with each request.
+- Streaming: single JSON response only; SSE can be added later as `/chat/stream`.
+- Source metadata: fallback source metadata is acceptable for MVP; richer metadata should be added during ingestion.
 
-- What is Article 21 of the Indian Constitution?
-- How do I file a complaint against my employer in India?
-- What is Section 420 IPC?
-- What is habeas corpus?
-- Paste a clause from a contract for analysis
+## Documentation
 
-## Technical Stack
+- [Setup Guide](docs/SETUP.md)
+- [Model Setup](docs/MODELS.md)
+- [API Reference](docs/API.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Development Guide](docs/DEVELOPMENT.md)
+- [Security Notes](docs/SECURITY.md)
+- [Roadmap](docs/ROADMAP.md)
+- [Changelog](CHANGELOG.md)
 
-### Backend
-- Streamlit (UI)
-- LangChain (reasoning, chains)
-- FAISS (vector search)
-- InLegalBERT (embeddings)
+## Tech Stack
 
-### Frontend
-- Next.js 16 (React framework)
-- React 19 (UI library)
-- Tailwind CSS v4 (styling)
-- TypeScript 5.7 (type safety)
-- Shadcn/UI (components)
+Backend:
 
-## Roadmap
+- FastAPI
+- Uvicorn
+- Pydantic
+- FAISS
+- LangChain community vector store support
+- Sentence Transformers / Transformers
+- CTransformers for GGUF inference
 
-- [ ] Backend API integration
-- [ ] Authentication & user accounts
-- [ ] Multi-language support
-- [ ] Export to PDF/Word
-- [ ] Collaboration features
-- [ ] Mobile app (React Native)
+Frontend:
 
-## Contributing
-
-Pull requests are welcome! Please ensure:
-1. Code is well-typed (TypeScript)
-2. Components are reusable
-3. Styling uses Tailwind CSS
-4. Documentation is updated
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+- Radix UI primitives
+- Lucide icons
 
 ## License
 
-MIT License - see LICENSE file for details
+License is not finalized in this repository. Add a `LICENSE` file before public release.
 
-## Support
-
-For issues, questions, or feature requests, please open a GitHub issue.
-
----
-
-**Made with ❤️ for legal professionals in India**
-- Mistral-7B (LLM)
-
-## Disclaimer
-This chatbot is for informational purposes only and does not constitute legal advice. Always consult a qualified legal professional for specific legal matters.

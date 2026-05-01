@@ -1,139 +1,101 @@
-# Project Guide
+# Contributing to LegalEagle
 
-## Directory Structure
+Thanks for improving LegalEagle. This project is still MVP-stage, so contributions should prioritize correctness, clear contracts, reproducibility, and safe handling of legal information.
 
-```
-Law.ai/
-├── frontend/                    # Next.js 16 React frontend (NEW!)
-│   ├── app/
-│   │   ├── page.tsx            # Landing page
-│   │   ├── layout.tsx          # Root layout
-│   │   ├── globals.css         # Global styles (includes scrollbar hiding)
-│   │   └── (app)/              # App shell with sidebars
-│   │       ├── layout.tsx      # Sidebar + main layout
-│   │       ├── chat/           # Chat page
-│   │       ├── documents/      # Document upload
-│   │       ├── settings/       # User settings
-│   │       └── sources/        # Citation library
-│   │
-│   ├── components/
-│   │   ├── legal/              # Custom legal components
-│   │   │   ├── sidebar.tsx
-│   │   │   ├── right-panel.tsx
-│   │   │   ├── chat-message.tsx
-│   │   │   ├── chat-input.tsx
-│   │   │   └── ... (more components)
-│   │   └── ui/                 # Shadcn UI components (60+)
-│   │
-│   ├── hooks/
-│   │   ├── use-chat.ts
-│   │   ├── use-document-upload.ts
-│   │   └── use-settings.ts
-│   │
-│   ├── lib/
-│   │   ├── legal-data.ts       # Types and mock data
-│   │   ├── utils.ts            # Utilities
-│   │   └── cn.ts               # Tailwind merge
-│   │
-│   ├── public/                 # Static assets
-│   ├── styles/                 # Additional styles
-│   ├── package.json
-│   ├── tsconfig.json
-│   ├── tailwind.config.ts
-│   ├── next.config.mjs
-│   └── postcss.config.mjs
-│
-├── app.py                       # Backend Streamlit app
-├── requirements.txt             # Python dependencies
-├── README.md                    # Main documentation
-├── CHANGELOG.md                 # Version history
-├── LICENSE                      # MIT License
-├── .gitignore                   # Git configuration
-└── models/                      # AI models (not in repo)
-    └── ... (download separately)
+## Development Principles
+
+- Keep the backend and frontend API contract aligned.
+- Do not commit model weights, private legal documents, secrets, or personal data.
+- Prefer small, reviewable pull requests.
+- Add or update documentation when behavior changes.
+- Treat all generated legal answers as informational, not legal advice.
+
+## Local Setup
+
+Backend:
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r backend/requirements.txt
+set LEGALEAGLE_DEMO_MODE=true
+python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-## Getting Started
+Frontend:
 
-### Frontend
 ```bash
 cd frontend
 npm install
 npm run dev
-# Opens http://localhost:3000
 ```
 
-### Backend
+See [docs/SETUP.md](docs/SETUP.md) and [docs/MODELS.md](docs/MODELS.md) for full setup details.
+
+## Branches and Commits
+
+Use focused branches:
+
 ```bash
-pip install -r requirements.txt
-streamlit run app.py
-# Opens http://localhost:8501
+git checkout -b feature/source-metadata
+git checkout -b fix/model-validation
+git checkout -b docs/api-contract
 ```
 
-## Key Features
+Commit messages should be short and specific:
 
-### Frontend UI
-- ✅ Modern Next.js 16 interface
-- ✅ Fixed sidebars with scrollable content
-- ✅ Dark mode support
-- ✅ Mobile responsive
-- ✅ Invisible scrollbars
-- ✅ TypeScript for type safety
-- ✅ Tailwind CSS styling
+```text
+docs: add model setup guide
+fix: return frontend-compatible source metadata
+feat: add upload validation errors
+```
 
-### Backend
-- Chat with context awareness
-- Document analysis
-- FAISS vector search
-- Indian legal knowledge base
+## Backend Guidelines
 
-## Development
+- Keep routes thin; place retrieval/generation logic in services.
+- Maintain Pydantic schemas in `backend/app/models/schemas.py`.
+- Return stable JSON contracts even when optional metadata is missing.
+- Use `LEGALEAGLE_DEMO_MODE=true` for development without model weights.
+- Add clear startup diagnostics for missing model files.
 
-### Code Style
-- Use TypeScript for all frontend code
-- Components in `components/legal/`
-- Styles using Tailwind CSS classes
-- Reusable hooks in `hooks/`
+## Frontend Guidelines
 
-### Adding New Pages
-1. Create in `app/(app)/[page]/page.tsx`
-2. Update sidebar navigation in `components/legal/sidebar.tsx`
-3. Add to types in `lib/legal-data.ts`
+- Keep shared types in `frontend/lib/legal-data.ts`.
+- Keep reusable app components in `frontend/components/legal/`.
+- Use the existing UI component and styling patterns.
+- Avoid assuming all source metadata is present; citation, jurisdiction, and year may be null or empty.
+- Keep chat state client-owned for the MVP.
 
-### Adding New Components
-1. Create in `components/legal/[component].tsx`
-2. Export from component files
-3. Use in pages
-4. Document with JSDoc comments
+## Testing Checklist
 
-## Deployment
+Before opening a pull request:
 
-### Frontend (Vercel)
+- Backend starts in demo mode.
+- `GET /health` returns a valid response.
+- `POST /chat` returns `answer`, `confidence`, and `sources`.
+- Frontend builds or runs locally.
+- Chat UI handles backend errors cleanly.
+- Documentation reflects any setup or contract change.
+
+Useful commands:
+
 ```bash
-vercel --prod
+python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
+curl http://127.0.0.1:8000/health
+cd frontend
+npm run build
+npm run lint
 ```
 
-### Backend (Your Server)
-```bash
-python app.py
-# Or use systemd/supervisor for production
-```
+## Pull Request Checklist
 
-## Contributing
+- Describe the change and why it is needed.
+- Mention affected areas: backend, frontend, docs, models, data, or API.
+- Include screenshots for UI changes.
+- Include sample request/response for API changes.
+- Confirm no model weights or private documents are committed.
 
-1. Create a feature branch
-2. Make your changes
-3. Test thoroughly
-4. Submit a pull request
+## Legal and Safety Notes
 
-## License
+LegalEagle must always communicate that generated output is informational. Do not remove disclaimers, and avoid wording that presents the system as a replacement for a qualified lawyer.
 
-MIT - See LICENSE file
-
-## Contact
-
-For questions, issues, or feature requests, open a GitHub issue.
-
----
-
-**Made with ❤️ for legal professionals**
