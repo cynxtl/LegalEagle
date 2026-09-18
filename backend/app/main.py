@@ -1,9 +1,10 @@
 """
 FastAPI application entry point.
 
-Initializes models on startup via lifespan context manager.
-Validates model files at startup with clear error messages.
-Supports demo mode for development without model weights.
+Initializes real InLegalBERT embedder, FAISS retriever, and local LLM generator
+on startup via lifespan context manager.
+Enforces real model inference without silent fallbacks.
+Supports SQLite database persistence for threads, messages, documents, and sources.
 """
 
 import logging
@@ -20,12 +21,13 @@ from backend.app.core.config import (
     validate_model_files,
     format_validation_report,
 )
+from backend.app.db.database import Base, engine
 from backend.app.services.rag.embedder import InLegalBERTEmbeddings
 from backend.app.services.rag.retriever import FAISSRetriever
-from backend.app.services.rag.pipeline import RAGPipeline
 from backend.app.services.llm.generator import LLMGenerator
+from backend.app.services.rag.pipeline import RAGPipeline
 
-from backend.app.routes import chat, upload, health
+from backend.app.routes import chat, upload, health, threads, documents, sources
 
 # ── Logging ───────────────────────────────────────────────────────────
 
@@ -69,11 +71,12 @@ async def lifespan(app: FastAPI):
     """Startup / shutdown lifecycle.
 
     On startup:
-      1. Validate model files
-      2. Load embedding model (or activate demo mode)
-      3. Load FAISS index
-      4. Load LLM
-      5. Create RAG pipeline
+      1. Initialize SQLite database tables
+      2. Validate model files
+      3. Load real InLegalBERT embedding model
+      4. Load real FAISS vector index
+      5. Load real local LLM generator
+      6. Assemble RAG pipeline
 
     On shutdown:
       - Release model references
@@ -84,58 +87,56 @@ async def lifespan(app: FastAPI):
     logger.info("LegalEagle FastAPI Backend — Starting up")
     logger.info("=" * 60)
     logger.info("Project root : %s", settings.project_root)
-    logger.info("Demo mode    : %s", settings.demo_mode)
 
-    # ── Step 1: Validate model files ──────────────────────────────
+    # ── Step 1: Initialize Database Tables ────────────────────────
+    try:
+        Base.metadata.create_all(bind=engine)
+        logger.info("✓ SQLite database tables verified")
+    except Exception as exc:
+        logger.error("✗ Failed to initialize database tables: %s", exc)
+
+    # ── Step 2: Validate model files ──────────────────────────────
     validation_errors = validate_model_files(settings)
     if validation_errors:
         report = format_validation_report(validation_errors)
-        logger.warning("\n%s", report)
+        logger.error("\n%s", report)
+    else:
+        logger.info("✓ All required model files verified on disk")
 
-        if not settings.demo_mode:
-            logger.warning(
-                "Models are missing. Starting in degraded mode. "
-                "Set LEGALEAGLE_DEMO_MODE=true for mock responses."
-            )
-
-    use_demo = settings.demo_mode or bool(validation_errors)
-
-    # ── Step 2: Load embedding model ──────────────────────────────
+    # ── Step 3: Load embedding model ──────────────────────────────
     try:
-        _embedder = InLegalBERTEmbeddings(demo_mode=use_demo)
-        logger.info("✓ Embedder ready (demo=%s)", use_demo)
+        _embedder = InLegalBERTEmbeddings(demo_mode=False)
+        logger.info("✓ InLegalBERT embedder ready (768 dimensions)")
     except Exception as exc:
-        logger.error("✗ Embedder failed: %s", exc)
-        if not use_demo:
-            logger.info("Falling back to demo mode for embedder")
-            _embedder = InLegalBERTEmbeddings(demo_mode=True)
+        logger.error("✗ InLegalBERT embedder failed: %s", exc)
 
-    # ── Step 3: Load FAISS index ──────────────────────────────────
+    # ── Step 4: Load FAISS index ──────────────────────────────────
     if _embedder is not None:
         try:
             _retriever = FAISSRetriever(_embedder)
             loaded = _retriever.load_index()
             if loaded:
-                logger.info("✓ FAISS index ready")
+                doc_count = _retriever.vector_store.index.ntotal if _retriever.vector_store else 0
+                logger.info("✓ FAISS vector index ready (%d vectors loaded)", doc_count)
             else:
                 logger.warning("⚠ FAISS index not loaded (retrieval will be empty)")
         except Exception as exc:
             logger.error("✗ FAISS retriever failed: %s", exc)
 
-    # ── Step 4: Load LLM ─────────────────────────────────────────
+    # ── Step 5: Load LLM ─────────────────────────────────────────
     try:
-        _generator = LLMGenerator(demo_mode=use_demo)
-        logger.info("✓ LLM generator ready (demo=%s)", use_demo)
+        _generator = LLMGenerator(demo_mode=False)
+        logger.info("✓ LLM generator ready (CTransformers)")
     except Exception as exc:
         logger.error("✗ LLM generator failed: %s", exc)
-        if not use_demo:
-            logger.info("Falling back to demo mode for LLM")
-            _generator = LLMGenerator(demo_mode=True)
 
-    # ── Step 5: Create RAG pipeline ───────────────────────────────
+    # ── Step 6: Create RAG pipeline ───────────────────────────────
     if _retriever is not None and _generator is not None:
-        _pipeline = RAGPipeline(retriever=_retriever, generator=_generator)
-        logger.info("✓ RAG pipeline assembled")
+        try:
+            _pipeline = RAGPipeline(retriever=_retriever, generator=_generator)
+            logger.info("✓ RAG pipeline assembled with real AI models")
+        except Exception as exc:
+            logger.error("✗ RAG pipeline failed: %s", exc)
     else:
         logger.warning("⚠ RAG pipeline not assembled — missing components")
 
@@ -160,15 +161,14 @@ app = FastAPI(
     title="LegalEagle API",
     description=(
         "AI-powered Indian legal research assistant with RAG-based "
-        "retrieval and Mistral-7B generation. Returns answers with "
+        "retrieval and local LLM generation. Returns answers with "
         "verifiable source citations."
     ),
     version="2.0.0",
     lifespan=lifespan,
 )
 
-# CORS — allow all origins for local development
-# TODO: Restrict to known frontend domains in production
+# CORS — allow frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
@@ -182,6 +182,9 @@ app.add_middleware(
 app.include_router(chat.router)
 app.include_router(upload.router)
 app.include_router(health.router)
+app.include_router(threads.router)
+app.include_router(documents.router)
+app.include_router(sources.router)
 
 
 @app.get("/", include_in_schema=False)

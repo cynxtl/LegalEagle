@@ -1,3 +1,5 @@
+"use client"
+
 import {
   Landmark,
   Gavel,
@@ -5,12 +7,22 @@ import {
   AlertTriangle,
   ListChecks,
 } from "lucide-react"
-import { sampleSources } from "@/lib/legal-data"
+import type { Source } from "@/lib/legal-data"
 import { SourceCard } from "./source-card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 
-export function RightPanel({ className }: { className?: string }) {
+export function RightPanel({
+  sources = [],
+  confidence = "medium",
+  className,
+}: {
+  sources?: Source[]
+  confidence?: string
+  className?: string
+}) {
+  const displaySources = sources
+
   return (
     <aside
       className={cn(
@@ -24,7 +36,7 @@ export function RightPanel({ className }: { className?: string }) {
             Research panel
           </h2>
           <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-            Live citations · current thread
+            Live citations · current query
           </p>
         </div>
       </div>
@@ -35,10 +47,10 @@ export function RightPanel({ className }: { className?: string }) {
             Sources
           </TabsTrigger>
           <TabsTrigger value="acts" className="text-xs">
-            Acts
+            Confidence
           </TabsTrigger>
           <TabsTrigger value="summary" className="text-xs">
-            Summary
+            Notes
           </TabsTrigger>
         </TabsList>
 
@@ -49,127 +61,68 @@ export function RightPanel({ className }: { className?: string }) {
           >
             <SectionHeader
               icon={Gavel}
-              label="Sources used"
-              count={sampleSources.length}
+              label="Retrieved Citations"
+              count={displaySources.length}
             />
-            <div className="space-y-2.5">
-              {sampleSources.slice(0, 3).map((src, i) => (
-                <SourceCard key={src.id} source={src} index={i} />
-              ))}
-            </div>
 
-            <div className="mt-6">
-              <SectionHeader icon={FileText} label="Case references" count={2} />
-              <ul className="space-y-1.5">
-                {[
-                  {
-                    title: "Olga Tellis v. Bombay Municipal Corp.",
-                    cite: "(1985) 3 SCC 545",
-                  },
-                  {
-                    title: "K.S. Puttaswamy v. Union of India",
-                    cite: "(2017) 10 SCC 1",
-                  },
-                ].map((c) => (
-                  <li
-                    key={c.cite}
-                    className="rounded-lg border border-border bg-card/40 px-3 py-2"
-                  >
-                    <p className="text-xs font-medium leading-tight">
-                      {c.title}
-                    </p>
-                    <p className="font-mono text-[10px] text-muted-foreground">
-                      {c.cite}
-                    </p>
-                  </li>
+            {displaySources.length === 0 ? (
+              <div className="rounded-xl border border-border bg-card/40 p-6 text-center">
+                <p className="text-xs text-muted-foreground">
+                  No citations yet. Ask a legal question to retrieve verified source passages from the FAISS legal database.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {displaySources.map((src, i) => (
+                  <SourceCard key={src.id || i} source={src} index={i} />
                 ))}
-              </ul>
-            </div>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="acts" className="px-5 py-4">
-            <SectionHeader icon={Landmark} label="Relevant acts & sections" />
-            <ul className="space-y-2">
-              {[
-                {
-                  act: "Rent Control Act, 1958",
-                  section: "§ 14(1)(a)",
-                  desc: "Grounds for eviction — non-payment of rent",
-                },
-                {
-                  act: "Transfer of Property Act, 1882",
-                  section: "§ 106",
-                  desc: "Notice requirements for tenancy termination",
-                },
-                {
-                  act: "Code of Civil Procedure, 1908",
-                  section: "Order XV-A",
-                  desc: "Procedure for eviction suits",
-                },
-                {
-                  act: "Constitution of India",
-                  section: "Art. 21",
-                  desc: "Right to shelter as part of right to life",
-                },
-              ].map((a) => (
-                <li
-                  key={a.section}
-                  className="rounded-lg border border-border bg-card/40 p-3"
+            <SectionHeader icon={Landmark} label="Retrieval Confidence" />
+            <div className="rounded-xl border border-border bg-card/40 p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium">Model Confidence</span>
+                <span
+                  className={cn(
+                    "rounded px-2 py-0.5 font-mono text-xs font-semibold capitalize",
+                    confidence === "high"
+                      ? "bg-emerald-500/10 text-emerald-500"
+                      : confidence === "medium"
+                      ? "bg-amber-500/10 text-amber-500"
+                      : "bg-rose-500/10 text-rose-500"
+                  )}
                 >
-                  <div className="flex items-baseline justify-between gap-2">
-                    <p className="text-xs font-medium leading-tight">{a.act}</p>
-                    <span className="shrink-0 font-mono text-[10px] text-accent">
-                      {a.section}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-                    {a.desc}
-                  </p>
-                </li>
-              ))}
-            </ul>
+                  {confidence}
+                </span>
+              </div>
+              <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
+                Confidence is derived from vector embedding cosine/L2 distances between your query and indexed legal corpus chunks.
+              </p>
+            </div>
           </TabsContent>
 
           <TabsContent
             value="summary"
             className="px-5 py-4"
           >
-            <SectionHeader icon={ListChecks} label="Answer summary" />
-            <div className="rounded-xl border border-border bg-card/40 p-4">
-              <ul className="space-y-2 text-xs leading-relaxed">
-                {[
-                  "Statutory notice (15–30 days) is mandatory before eviction.",
-                  "Petition must be filed before the Rent Controller.",
-                  "Tenant may deposit arrears with interest to avoid eviction.",
-                  "Self-help eviction is illegal and criminally actionable.",
-                ].map((s, i) => (
-                  <li key={i} className="flex gap-2">
-                    <span className="mt-1.5 size-1 shrink-0 rounded-full bg-primary" />
-                    <span>{s}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="mt-4">
-              <SectionHeader icon={AlertTriangle} label="Risk & confidence notes" />
-              <div className="space-y-2">
-                <div className="rounded-lg border border-accent/30 bg-accent/5 p-3">
-                  <p className="text-[11px] font-medium text-accent-foreground">
-                    Jurisdictional variance
-                  </p>
-                  <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-                    Rent Control Acts vary by state. Verify provisions for your
-                    specific jurisdiction.
-                  </p>
-                </div>
-                <div className="rounded-lg border border-border bg-card/40 p-3">
-                  <p className="text-[11px] font-medium">Recency</p>
-                  <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-                    Cited cases are current as of 2024. Newer rulings may not yet
-                    be indexed.
-                  </p>
-                </div>
+            <SectionHeader icon={AlertTriangle} label="Statutory Caution" />
+            <div className="space-y-2">
+              <div className="rounded-lg border border-accent/30 bg-accent/5 p-3">
+                <p className="text-[11px] font-medium text-accent-foreground">
+                  Indian Legal Corpus
+                </p>
+                <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                  Responses are strictly grounded in retrieved FAISS passages from Indian statutes, court judgments, and legal precedents.
+                </p>
+              </div>
+              <div className="rounded-lg border border-border bg-card/40 p-3">
+                <p className="text-[11px] font-medium">Verification Mandatory</p>
+                <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                  Always verify cited sections and precedents before drafting court submissions or advisory opinions.
+                </p>
               </div>
             </div>
           </TabsContent>

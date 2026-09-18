@@ -7,6 +7,7 @@ const typeConfig = {
   statute: { label: "Statute", Icon: Landmark },
   regulation: { label: "Regulation", Icon: Scroll },
   commentary: { label: "Commentary", Icon: BookOpen },
+  retrieved_chunk: { label: "Corpus Chunk", Icon: BookOpen },
 } as const
 
 export function SourceCard({

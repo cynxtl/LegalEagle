@@ -3,30 +3,31 @@
 import {
   FileText,
   Search,
-  MoreHorizontal,
   CheckCircle2,
   Clock,
   AlertCircle,
   Sparkles,
-  Highlighter,
   ListChecks,
   ShieldAlert,
+  Trash2,
 } from "lucide-react"
 import { useState } from "react"
+import Link from "next/link"
 import { DocumentUploadCard } from "@/components/legal/document-upload-card"
-import { DisclaimerBanner } from "@/components/legal/disclaimer-banner"
 import { CategoryTag } from "@/components/legal/category-chips"
 import { ConfidenceBadge } from "@/components/legal/confidence-badge"
-import { sampleDocs } from "@/lib/legal-data"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { useDocumentUpload } from "@/hooks/use-document-upload"
+import type { UploadedDoc } from "@/lib/legal-data"
 
 export default function DocumentsPage() {
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedDoc, setSelectedDoc] = useState(sampleDocs[0])
-  const { files, removeFile } = useDocumentUpload(sampleDocs)
+  const { files, removeFile } = useDocumentUpload([])
+  const [selectedDocId, setSelectedDocId] = useState<string | null>(null)
+
+  const selectedDoc = files.find((f) => f.id === selectedDocId) || files[0] || null
 
   const filteredDocs = files.filter(
     (doc) =>
@@ -42,11 +43,15 @@ export default function DocumentsPage() {
         <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_360px]">
           <div className="space-y-6">
             <DocumentUploadCard />
-            <DocList docs={filteredDocs} onSelectDoc={setSelectedDoc} onRemoveDoc={removeFile} />
+            <DocList
+              docs={filteredDocs}
+              selectedId={selectedDoc?.id || null}
+              onSelectDoc={(doc) => setSelectedDocId(doc.id)}
+              onRemoveDoc={removeFile}
+            />
           </div>
           <div className="space-y-6">
             <ActiveDocAnalysis doc={selectedDoc} />
-            <ExtractedClauses />
           </div>
         </div>
       </div>
@@ -71,8 +76,8 @@ function PageHeader({
           Your private legal corpus.
         </h1>
         <p className="mt-1.5 max-w-xl text-sm text-muted-foreground">
-          Upload contracts, judgments, and filings. LegalEagle indexes them
-          privately and answers questions grounded in your documents.
+          Upload contracts, judgments, and statutory filings. LegalEagle indexes them
+          privately into FAISS and answers questions grounded in your documents.
         </p>
       </div>
       <div className="flex gap-2">
@@ -113,11 +118,13 @@ const statusConfig = {
 
 function DocList({
   docs,
+  selectedId,
   onSelectDoc,
   onRemoveDoc,
 }: {
-  docs: typeof sampleDocs
-  onSelectDoc: (doc: typeof sampleDocs[0]) => void
+  docs: UploadedDoc[]
+  selectedId: string | null
+  onSelectDoc: (doc: UploadedDoc) => void
   onRemoveDoc: (id: string) => void
 }) {
   return (
@@ -125,62 +132,74 @@ function DocList({
       <div className="flex items-center justify-between border-b border-border/60 px-5 py-3.5">
         <div>
           <h2 className="font-serif text-base tracking-tight">
-            Uploaded documents
+            Indexed documents
           </h2>
           <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-            {docs.length} files · 7.6 MB total
+            {docs.length} files in SQLite vector corpus
           </p>
         </div>
-        <Button variant="ghost" size="sm" className="h-8 text-xs">
-          Sort: Recent
-        </Button>
       </div>
-      <ul className="divide-y divide-border/60">
-        {docs.map((doc) => {
-          const cfg = statusConfig[doc.status]
-          const Icon = cfg.Icon
-          return (
-            <li
-              key={doc.id}
-              onClick={() => onSelectDoc(doc)}
-              className="group flex cursor-pointer items-center gap-4 px-5 py-3.5 transition-colors hover:bg-muted/30"
-            >
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20">
-                <FileText className="size-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="truncate text-sm font-medium">{doc.name}</p>
-                  <CategoryTag category={doc.category} />
-                </div>
-                <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">
-                  {doc.size} · {doc.pages} pages · {doc.uploadedAt}
-                </p>
-              </div>
-              <div
+
+      {docs.length === 0 ? (
+        <div className="px-6 py-12 text-center">
+          <FileText className="mx-auto size-8 text-muted-foreground/50" />
+          <p className="mt-2 text-sm font-medium">No documents uploaded yet</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Upload PDF, DOCX, or TXT files above to add them to your private FAISS vector store.
+          </p>
+        </div>
+      ) : (
+        <ul className="divide-y divide-border/60">
+          {docs.map((doc) => {
+            const cfg = statusConfig[doc.status as keyof typeof statusConfig] || statusConfig.indexed
+            const Icon = cfg.Icon
+            const isSelected = doc.id === selectedId
+            return (
+              <li
+                key={doc.id}
+                onClick={() => onSelectDoc(doc)}
                 className={cn(
-                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
-                  cfg.bg,
-                  cfg.color
+                  "group flex cursor-pointer items-center gap-4 px-5 py-3.5 transition-colors hover:bg-muted/30",
+                  isSelected && "bg-muted/40"
                 )}
               >
-                <Icon className="size-3" />
-                {cfg.label}
-              </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onRemoveDoc(doc.id)
-                }}
-                aria-label="Delete document"
-                className="hidden size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive sm:flex"
-              >
-                <MoreHorizontal className="size-4" />
-              </button>
-            </li>
-          )
-        })}
-      </ul>
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20">
+                  <FileText className="size-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="truncate text-sm font-medium">{doc.name}</p>
+                    <CategoryTag category={doc.category} />
+                  </div>
+                  <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">
+                    {doc.size} · {doc.pages} pages · {doc.uploadedAt}
+                  </p>
+                </div>
+                <div
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                    cfg.bg,
+                    cfg.color
+                  )}
+                >
+                  <Icon className="size-3" />
+                  {cfg.label}
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onRemoveDoc(doc.id)
+                  }}
+                  aria-label="Delete document"
+                  className="size-8 flex items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <Trash2 className="size-3.5" />
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
     </section>
   )
 }
@@ -188,13 +207,23 @@ function DocList({
 function ActiveDocAnalysis({
   doc,
 }: {
-  doc: typeof sampleDocs[0]
+  doc: UploadedDoc | null
 }) {
+  if (!doc) {
+    return (
+      <section className="rounded-2xl border border-border bg-card/60 p-6 text-center">
+        <p className="text-xs text-muted-foreground">
+          Select or upload a document to view indexed details and corpus grounding.
+        </p>
+      </section>
+    )
+  }
+
   return (
     <section className="rounded-2xl border border-border bg-card/60 p-5">
       <div className="flex items-center gap-2">
         <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          Now analyzing
+          Active Document
         </span>
         <div className="h-px flex-1 bg-border" />
       </div>
@@ -204,11 +233,9 @@ function ActiveDocAnalysis({
           <FileText className="size-4" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium">
-            {doc.name}
-          </p>
+          <p className="truncate text-sm font-medium">{doc.name}</p>
           <p className="font-mono text-[10px] text-muted-foreground">
-            18 pages · indexed 9:12 AM
+            {doc.pages} pages · {doc.size} · {doc.uploadedAt}
           </p>
         </div>
       </div>
@@ -216,30 +243,29 @@ function ActiveDocAnalysis({
       <div className="mt-5 space-y-3">
         <SummaryRow
           icon={Sparkles}
-          label="AI summary"
-          value="Standard residential lease with 11-month term, 2-month security deposit, and break clause after 6 months."
+          label="Corpus Status"
+          value="Indexed in FAISS vector store. Text chunks are available for semantic similarity retrieval in consultations."
           confidence="high"
         />
         <SummaryRow
           icon={ListChecks}
-          label="Key parties"
-          value="Lessor: Mehta Properties LLP · Lessee: Anjali Verma · Witnesses: 2"
+          label="Document Classification"
+          value={`Categorized under ${doc.category || "General Legal"}. Chunks extracted with 1000-char window and 100-char overlap.`}
         />
         <SummaryRow
           icon={ShieldAlert}
-          label="Risk flags"
-          value="Section 7.3 (rent escalation) lacks an upper bound. Consider negotiation."
-          confidence="medium"
+          label="Privacy Guarantee"
+          value="Stored locally on this server. Document chunks are processed strictly offline by local InLegalBERT embeddings."
+          confidence="high"
         />
       </div>
 
       <div className="mt-5 flex gap-2">
-        <Button size="sm" className="flex-1 gap-1.5">
-          <Sparkles className="size-3.5" />
-          Ask about this doc
-        </Button>
-        <Button size="sm" variant="outline" className="bg-card/50">
-          Export
+        <Button asChild size="sm" className="flex-1 gap-1.5">
+          <Link href="/chat">
+            <Sparkles className="size-3.5" />
+            Query this document
+          </Link>
         </Button>
       </div>
     </section>
@@ -258,79 +284,17 @@ function SummaryRow({
   confidence?: "high" | "medium" | "low"
 }) {
   return (
-    <div className="rounded-lg border border-border bg-background/40 p-3">
+    <div className="rounded-xl border border-border/70 bg-background/50 p-3">
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 text-muted-foreground">
           <Icon className="size-3.5 text-primary" />
-          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+          <span className="font-mono text-[10px] uppercase tracking-wider">
             {label}
           </span>
         </div>
         {confidence && <ConfidenceBadge level={confidence} />}
       </div>
-      <p className="mt-2 text-xs leading-relaxed text-foreground/90">
-        {value}
-      </p>
+      <p className="mt-1.5 text-xs leading-relaxed text-foreground">{value}</p>
     </div>
-  )
-}
-
-function ExtractedClauses() {
-  const clauses = [
-    {
-      title: "Termination",
-      section: "§ 9",
-      excerpt:
-        "Either party may terminate with 60 days written notice after the initial 6-month lock-in.",
-    },
-    {
-      title: "Rent escalation",
-      section: "§ 7.3",
-      excerpt:
-        "Annual rent increase as mutually agreed; no statutory cap specified.",
-      flag: true,
-    },
-    {
-      title: "Security deposit",
-      section: "§ 4",
-      excerpt:
-        "Refundable within 30 days of vacating, less reasonable deductions.",
-    },
-  ]
-
-  return (
-    <section className="rounded-2xl border border-border bg-card/60 p-5">
-      <div className="mb-4 flex items-center gap-2">
-        <Highlighter className="size-3.5 text-accent" />
-        <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          Extracted clauses
-        </span>
-      </div>
-      <ul className="space-y-2.5">
-        {clauses.map((c) => (
-          <li
-            key={c.section}
-            className={cn(
-              "rounded-lg border bg-background/40 p-3",
-              c.flag ? "border-accent/30" : "border-border"
-            )}
-          >
-            <div className="flex items-baseline justify-between gap-2">
-              <p className="text-xs font-medium">{c.title}</p>
-              <span className="font-mono text-[10px] text-accent">
-                {c.section}
-              </span>
-            </div>
-            <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
-              {c.excerpt}
-            </p>
-          </li>
-        ))}
-      </ul>
-
-      <div className="mt-4">
-        <DisclaimerBanner variant="compact" />
-      </div>
-    </section>
   )
 }

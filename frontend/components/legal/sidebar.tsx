@@ -1,7 +1,8 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
   Plus,
   MessageSquare,
@@ -12,13 +13,22 @@ import {
   Upload,
   Search,
   ChevronRight,
+  Trash2,
 } from "lucide-react"
 import { Logo } from "./logo"
-import { sampleThreads } from "@/lib/legal-data"
 import { Button } from "@/components/ui/button"
 import { DocumentUploadCard } from "./document-upload-card"
 import { ThemeToggle } from "./theme-toggle"
 import { cn } from "@/lib/utils"
+
+export interface ThreadItem {
+  id: string
+  title: string
+  category: string
+  updated_at: string
+  message_count: number
+  preview?: string
+}
 
 const quickLinks = [
   { href: "/chat", label: "Ask a Question", icon: Sparkles },
@@ -29,6 +39,48 @@ const quickLinks = [
 
 export function LegalSidebar() {
   const pathname = usePathname()
+  const router = useRouter()
+  const [threads, setThreads] = useState<ThreadItem[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+
+  const fetchThreads = async () => {
+    try {
+      setIsLoading(true)
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"
+      const res = await fetch(`${API_URL}/api/v1/threads`)
+      if (res.ok) {
+        const data = await res.json()
+        setThreads(data)
+      }
+    } catch (e) {
+      console.error("Failed to fetch threads:", e)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchThreads()
+    const interval = setInterval(fetchThreads, 10000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const handleDeleteThread = async (e: React.MouseEvent, threadId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"
+      const res = await fetch(`${API_URL}/api/v1/threads/${threadId}`, {
+        method: "DELETE",
+      })
+      if (res.ok) {
+        setThreads((prev) => prev.filter((t) => t.id !== threadId))
+        router.push("/chat")
+      }
+    } catch (err) {
+      console.error("Failed to delete thread:", err)
+    }
+  }
 
   return (
     <aside className="fixed left-0 top-0 hidden h-svh w-72 flex-col border-r border-sidebar-border bg-sidebar lg:flex">
@@ -62,36 +114,51 @@ export function LegalSidebar() {
             Recent threads
           </span>
           <span className="font-mono text-[10px] text-muted-foreground">
-            {sampleThreads.length}
+            {threads.length}
           </span>
         </div>
-        <ul className="space-y-0.5">
-          {sampleThreads.map((thread) => (
-            <li key={thread.id}>
-              <Link
-                href={`/chat?thread=${thread.id}`}
-                className="group flex items-start gap-2 rounded-md px-2 py-2 text-sm transition-colors hover:bg-sidebar-accent"
-              >
-                <MessageSquare className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-medium leading-tight">
-                    {thread.title}
-                  </p>
-                  <div className="mt-0.5 flex items-center gap-1.5">
-                    <span className="font-mono text-[10px] text-muted-foreground">
-                      {thread.updatedAt}
-                    </span>
-                    <span className="size-0.5 rounded-full bg-muted-foreground/40" />
-                    <span className="truncate text-[10px] text-muted-foreground">
-                      {thread.category}
-                    </span>
+
+        {threads.length === 0 && !isLoading ? (
+          <div className="px-2 py-4 text-center">
+            <p className="text-xs text-muted-foreground">No recent consultations</p>
+          </div>
+        ) : (
+          <ul className="space-y-0.5">
+            {threads.map((thread) => (
+              <li key={thread.id}>
+                <Link
+                  href={`/chat?thread=${thread.id}`}
+                  className="group flex items-start justify-between gap-2 rounded-md px-2 py-2 text-sm transition-colors hover:bg-sidebar-accent"
+                >
+                  <div className="flex items-start gap-2 min-w-0 flex-1">
+                    <MessageSquare className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-medium leading-tight">
+                        {thread.title}
+                      </p>
+                      <div className="mt-0.5 flex items-center gap-1.5">
+                        <span className="truncate text-[10px] text-muted-foreground">
+                          {thread.category || "General"}
+                        </span>
+                        <span className="size-0.5 rounded-full bg-muted-foreground/40" />
+                        <span className="font-mono text-[10px] text-muted-foreground">
+                          {thread.message_count} msgs
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <ChevronRight className="mt-0.5 size-3 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
-              </Link>
-            </li>
-          ))}
-        </ul>
+                  <button
+                    onClick={(e) => handleDeleteThread(e, thread.id)}
+                    aria-label="Delete thread"
+                    className="mt-0.5 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
+                  >
+                    <Trash2 className="size-3" />
+                  </button>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
 
         <div className="mt-6 px-2">
           <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">

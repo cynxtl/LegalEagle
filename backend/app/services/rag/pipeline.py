@@ -125,20 +125,34 @@ class RAGPipeline:
         sources = []
         for i, doc in enumerate(retrieved):
             content = doc["content"]
+            metadata = doc.get("metadata") or {}
+            sec = metadata.get("section")
+            raw_title = metadata.get("title")
+            act = metadata.get("act", "IPC")
 
-            # Try to extract any metadata hints from the content
-            title, doc_type = self._infer_metadata(content)
+            if sec and raw_title:
+                title = f"{act} Section {sec}: {raw_title}"
+                citation = f"Indian Penal Code, 1860 — Section {sec}"
+                doc_type = "statute"
+                jurisdiction = "Supreme Court / Statutory Law of India"
+                year = 1860
+            else:
+                title, doc_type = self._infer_metadata(content)
+                citation = None
+                jurisdiction = None
+                year = None
 
             sources.append(
                 SourceResponse(
                     id=f"src-{uuid.uuid4().hex[:8]}",
                     title=title,
-                    citation=None,
-                    jurisdiction=None,
-                    year=None,
+                    citation=citation,
+                    jurisdiction=jurisdiction,
+                    year=year,
                     excerpt=content[:500] if len(content) > 500 else content,
                     url=None,
                     type=doc_type,
+                    score=round(doc.get("score", 0.0), 4) if doc.get("score") is not None else None,
                 )
             )
 

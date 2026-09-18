@@ -1,9 +1,9 @@
 """
 InLegalBERT embedding model wrapper.
 
-Extracted from app.py CustomEmbeddings class (lines 119-178).
+Extracted from app.py CustomEmbeddings class.
 Implements the LangChain Embeddings interface for FAISS compatibility.
-Supports demo mode with random embeddings when model files are missing.
+Computes real 768-dimensional embeddings via InLegalBERT with mean pooling.
 """
 
 import logging
@@ -19,30 +19,18 @@ logger = logging.getLogger(__name__)
 
 
 class InLegalBERTEmbeddings(Embeddings):
-    """LangChain-compatible embeddings using InLegalBERT.
-
-    Loads the model from a local directory. Falls back to random
-    768-dim embeddings when ``demo_mode`` is active and weights are missing.
-    """
+    """LangChain-compatible embeddings using InLegalBERT."""
 
     EMBEDDING_DIM = 768
 
     def __init__(self, model_dir: str | None = None, demo_mode: bool = False):
         self.model = None
         self.tokenizer = None
-        self.demo_mode = demo_mode
         self._loaded = False
 
         model_path = model_dir or str(
             settings.resolved_model_paths["inlegalbert_dir"]
         )
-
-        if demo_mode:
-            logger.warning(
-                "Demo mode active — InLegalBERT will return random embeddings"
-            )
-            self._loaded = True
-            return
 
         try:
             from transformers import AutoTokenizer, AutoModel
@@ -57,7 +45,7 @@ class InLegalBERTEmbeddings(Embeddings):
                 logger.info("InLegalBERT moved to CUDA")
 
             self._loaded = True
-            logger.info("InLegalBERT loaded successfully")
+            logger.info("InLegalBERT loaded successfully (768-dim)")
         except Exception as exc:
             logger.error(
                 "Failed to load InLegalBERT from '%s': %s", model_path, exc
@@ -78,15 +66,8 @@ class InLegalBERTEmbeddings(Embeddings):
 
     def _get_embeddings(self, texts: List[str]) -> List[List[float]]:
         """Compute embeddings via mean pooling of last hidden states."""
-        if self.demo_mode:
-            rng = np.random.default_rng(42)
-            return [
-                rng.standard_normal(self.EMBEDDING_DIM).tolist()
-                for _ in texts
-            ]
-
         if self.model is None or self.tokenizer is None:
-            raise RuntimeError("InLegalBERT model is not loaded")
+            raise RuntimeError("InLegalBERT model is not loaded — cannot embed")
 
         embeddings: List[List[float]] = []
         max_len = settings.embedding_max_length
@@ -125,19 +106,11 @@ class InLegalBERTEmbeddings(Embeddings):
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
         """Embed a batch of document texts."""
-        try:
-            return self._get_embeddings(texts)
-        except Exception as exc:
-            logger.error("embed_documents failed: %s", exc)
-            return [[0.0] * self.EMBEDDING_DIM] * len(texts)
+        return self._get_embeddings(texts)
 
     def embed_query(self, text: str) -> List[float]:
         """Embed a single query string."""
-        try:
-            return self._get_embeddings([text])[0]
-        except Exception as exc:
-            logger.error("embed_query failed: %s", exc)
-            return [0.0] * self.EMBEDDING_DIM
+        return self._get_embeddings([text])[0]
 
     def __call__(
         self, texts: Union[str, List[str]]

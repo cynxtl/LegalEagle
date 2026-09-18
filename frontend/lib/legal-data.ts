@@ -18,7 +18,8 @@ export type Source = {
   year: number
   excerpt: string
   url?: string
-  type: "case" | "statute" | "regulation" | "commentary"
+  type: "case" | "statute" | "regulation" | "commentary" | "retrieved_chunk"
+  is_starred?: boolean
 }
 
 export type Message = {
