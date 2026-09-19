@@ -65,7 +65,7 @@ class Settings(BaseSettings):
 
     # ── LLM parameters ────────────────────────────────────────────────
     llm_max_new_tokens: int = 512
-    llm_temperature: float = 0.7
+    llm_temperature: float = 0.1
     llm_context_length: int = 2048
     llm_gpu_layers: int = 0
 

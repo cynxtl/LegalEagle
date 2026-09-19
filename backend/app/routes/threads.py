@@ -20,6 +20,7 @@ from backend.app.db.database import get_db
 from backend.app.db.models import ThreadDB, MessageDB
 from backend.app.models.schemas import (
     ThreadCreate,
+    ThreadUpdate,
     ThreadResponse,
     ThreadDetailResponse,
     MessageResponse,
@@ -145,3 +146,38 @@ def delete_thread(thread_id: str, db: Session = Depends(get_db)):
     db.delete(thread)
     db.commit()
     return None
+
+
+@router.patch(
+    "/{thread_id}",
+    response_model=ThreadResponse,
+    responses={404: {"model": ErrorResponse}},
+    summary="Rename or update a chat thread",
+)
+def update_thread(thread_id: str, payload: ThreadUpdate, db: Session = Depends(get_db)):
+    thread = db.query(ThreadDB).filter(ThreadDB.id == thread_id).first()
+    if not thread:
+        raise HTTPException(status_code=404, detail=f"Thread '{thread_id}' not found")
+    
+    if payload.title is not None and payload.title.strip():
+        thread.title = payload.title.strip()
+    if payload.category is not None and payload.category.strip():
+        thread.category = payload.category.strip()
+    
+    thread.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(thread)
+
+    msg_count = len(thread.messages)
+    last_msg = thread.messages[-1].content if thread.messages else "New consultation..."
+    preview = last_msg[:80] + "..." if len(last_msg) > 80 else last_msg
+
+    return ThreadResponse(
+        id=thread.id,
+        title=thread.title,
+        category=thread.category,
+        created_at=thread.created_at.isoformat(),
+        updated_at=thread.updated_at.isoformat(),
+        message_count=msg_count,
+        preview=preview,
+    )

@@ -18,12 +18,23 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 from backend.app.core.config import settings
 from backend.app.services.rag.embedder import InLegalBERTEmbeddings
+from backend.app.services.rag.query_classifier import classify_query, QueryClassification
+from backend.app.services.rag.statute_mapper import statute_mapper
 
 logger = logging.getLogger(__name__)
 
 
 class FAISSRetriever:
     """Manages the FAISS vector store for Indian legal knowledge retrieval."""
+
+    DOMAIN_EXCLUSIONS = {
+        "criminal_law": {"tax_law", "tenancy_law"},
+        "constitutional_law": {"tax_law", "tenancy_law", "criminal_law"},
+        "procedural_law": {"tax_law", "tenancy_law"},
+        "law_of_evidence": {"tax_law", "tenancy_law"},
+        "tenancy_law": {"tax_law", "criminal_law", "procedural_law", "law_of_evidence"},
+        "tax_law": {"criminal_law", "constitutional_law", "procedural_law", "law_of_evidence", "tenancy_law"},
+    }
 
     def __init__(self, embedder: InLegalBERTEmbeddings):
         self.embedder = embedder
@@ -169,31 +180,189 @@ class FAISSRetriever:
     def retrieve(
         self, query: str, k: int | None = None
     ) -> list[dict]:
-        """Retrieve the top-k most relevant documents for a query.
+        """Retrieve the top-k most relevant documents for a legal query.
 
-        Returns a list of dicts with ``content`` and ``score`` keys.
+        Applies multi-stage domain-intelligent retrieval:
+          Tier 1: Exact statutory section and modern/historical companion resolution
+                  (e.g., Section 420 IPC -> 420 IPC [primary] + 318 BNS [companion]).
+          Tier 2: Domain-filtered dense semantic retrieval prioritizing candidate
+                  pool matching the classified legal domain, while strictly
+                  excluding incompatible domains (e.g. tax law excluded from criminal queries).
+        
+        Returns a list of dicts with content, score, metadata, provenance, and index.
         """
-        if not self.is_loaded:
+        if not self.is_loaded or self.vector_store is None:
             logger.warning("retrieve() called but FAISS index is not loaded")
             return []
 
         top_k = k or settings.retrieval_top_k
 
         try:
-            docs_with_scores = self.vector_store.similarity_search_with_score(
-                query, k=top_k
+            classification = classify_query(query)
+            primary_domain = classification.primary_domain
+            detected_sections = classification.detected_sections
+            excluded = self.DOMAIN_EXCLUSIONS.get(primary_domain, set())
+
+            final_results = []
+            seen_contents = set()
+
+            # ── Tier 1: Statutory Match & Companion Alias Lookup ───────
+            if detected_sections and self.vector_store.docstore:
+                for item in detected_sections:
+                    act = item["act"].upper()
+                    sec = item["section"].upper()
+
+                    # 1. Primary statutory section lookup
+                    for doc_id, doc in self.vector_store.docstore._dict.items():
+                        m = doc.metadata
+                        m_sec = str(m.get("section", "")).strip().upper()
+                        m_act = str(m.get("act", "")).strip().upper()
+
+                        sec_match = (
+                            m_sec == sec
+                            or m_sec == f"ARTICLE {sec}"
+                            or m_sec == f"SECTION {sec}"
+                            or f"SECTION {sec}" in m_sec
+                            or f"ARTICLE {sec}" in m_sec
+                        )
+                        act_match = False
+                        if "IPC" in act or "PENAL" in act:
+                            act_match = "PENAL" in m_act or "IPC" in m_act
+                        elif "BNS" in act or "NYAYA" in act:
+                            act_match = "NYAYA" in m_act or "BNS" in m_act
+                        elif "CRPC" in act or "PROCEDURE" in act:
+                            act_match = "PROCEDURE" in m_act or "CRPC" in m_act
+                        elif "BNSS" in act or "SURAKSHA" in act:
+                            act_match = "SURAKSHA" in m_act or "BNSS" in m_act
+                        elif "IEA" in act or "EVIDENCE" in act:
+                            act_match = "EVIDENCE" in m_act or "IEA" in m_act
+                        elif "BSA" in act or "SAKSHYA" in act:
+                            act_match = "SAKSHYA" in m_act or "BSA" in m_act
+                        elif "CONSTITUTION" in act:
+                            act_match = "CONSTITUTION" in m_act
+
+                        if sec_match and act_match:
+                            clean_text = doc.page_content.strip()
+                            if clean_text not in seen_contents:
+                                seen_contents.add(clean_text)
+                                final_results.append({
+                                    "content": clean_text,
+                                    "score": 0.0100,
+                                    "metadata": m,
+                                    "retrieval_stage": "primary_statute",
+                                })
+                                break
+
+                    # 2. Companion statute lookup (IPC <-> BNS, CrPC <-> BNSS, IEA <-> BSA)
+                    equivalents = statute_mapper.get_equivalents(act, sec)
+                    for equiv in equivalents:
+                        eq_act = equiv["act"].upper()
+                        eq_sec = equiv["section"].upper()
+
+                        for doc_id, doc in self.vector_store.docstore._dict.items():
+                            m = doc.metadata
+                            m_sec = str(m.get("section", "")).strip().upper()
+                            m_act = str(m.get("act", "")).strip().upper()
+
+                            sec_match = (
+                                m_sec == eq_sec
+                                or m_sec == f"SECTION {eq_sec}"
+                                or f"SECTION {eq_sec}" in m_sec
+                            )
+                            act_match = (
+                                ("NYAYA" in eq_act and "NYAYA" in m_act)
+                                or ("PENAL" in eq_act and "PENAL" in m_act)
+                                or ("SURAKSHA" in eq_act and "SURAKSHA" in m_act)
+                                or ("PROCEDURE" in eq_act and "PROCEDURE" in m_act)
+                                or ("SAKSHYA" in eq_act and "SAKSHYA" in m_act)
+                                or ("EVIDENCE" in eq_act and "EVIDENCE" in m_act)
+                            )
+                            if sec_match and act_match:
+                                clean_text = doc.page_content.strip()
+                                if clean_text not in seen_contents:
+                                    seen_contents.add(clean_text)
+                                    final_results.append({
+                                        "content": clean_text,
+                                        "score": 0.0500,
+                                        "metadata": m,
+                                        "retrieval_stage": "mapped_companion",
+                                    })
+                                    break
+
+            # ── Tier 2: Domain-Filtered Dense Similarity Search ────────
+            total_vectors = len(self.vector_store.docstore._dict) if self.vector_store.docstore else 100
+            dense_candidates = self.vector_store.similarity_search_with_score(
+                query, k=total_vectors
             )
-            results = []
-            for i, (doc, score) in enumerate(docs_with_scores):
-                results.append(
-                    {
-                        "content": doc.page_content,
-                        "score": float(score),
-                        "metadata": doc.metadata,
-                        "index": i,
-                    }
+
+            primary_pool = []
+            secondary_pool = []
+            general_pool = []
+
+            for doc, score in dense_candidates:
+                txt = doc.page_content.strip()
+                if txt in seen_contents:
+                    continue
+
+                d = doc.metadata.get("domain", "")
+                if d in excluded:
+                    continue
+
+                is_primary = (
+                    d == primary_domain
+                    or (primary_domain == "general_legal_qa" and d in {"legal_qa", "general_legal_qa"})
                 )
-            return results
+                is_secondary = d in classification.secondary_domains
+                is_legal_qa = d in {"legal_qa", "general_legal_qa"}
+
+                cand = {
+                    "content": txt,
+                    "score": float(score),
+                    "metadata": doc.metadata,
+                    "retrieval_stage": "dense_semantic",
+                }
+
+                if is_primary:
+                    primary_pool.append(cand)
+                elif is_secondary or is_legal_qa:
+                    secondary_pool.append(cand)
+                else:
+                    general_pool.append(cand)
+
+            # Fill remaining slots up to top_k: primary domain first
+            for item in primary_pool:
+                if len(final_results) >= top_k:
+                    break
+                seen_contents.add(item["content"])
+                final_results.append(item)
+
+            for item in secondary_pool:
+                if len(final_results) >= top_k:
+                    break
+                seen_contents.add(item["content"])
+                final_results.append(item)
+
+            for item in general_pool:
+                if len(final_results) >= top_k:
+                    break
+                seen_contents.add(item["content"])
+                final_results.append(item)
+
+            # Assign index and provenance metadata
+            for i, res in enumerate(final_results):
+                res["index"] = i
+                m = res.get("metadata") or {}
+                res["provenance"] = {
+                    "act": m.get("act"),
+                    "section": m.get("section"),
+                    "title": m.get("title"),
+                    "domain": m.get("domain"),
+                    "source_type": m.get("source_type"),
+                    "year": m.get("year"),
+                }
+
+            return final_results[:top_k]
+
         except Exception as exc:
             logger.error("Retrieval failed: %s", exc)
             return []

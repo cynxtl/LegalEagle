@@ -51,7 +51,7 @@ class ChatRequest(BaseModel):
 
 
 class SourceResponse(BaseModel):
-    """A single retrieved source document."""
+    """A single retrieved source document with full provenance metadata."""
 
     id: str
     thread_id: Optional[str] = None
@@ -68,6 +68,11 @@ class SourceResponse(BaseModel):
     score: Optional[float] = None
     is_starred: bool = False
     created_at: Optional[str] = None
+    # Provenance fields for domain intelligence
+    act: Optional[str] = None
+    section: Optional[str] = None
+    domain: Optional[str] = None
+    source_type: Optional[str] = None
 
 
 # ── Chat Response Model ───────────────────────────────────────────────
@@ -98,6 +103,12 @@ class ThreadCreate(BaseModel):
     """Payload to create a new thread."""
     title: Optional[str] = "New Consultation"
     category: Optional[str] = "General"
+
+
+class ThreadUpdate(BaseModel):
+    """Payload to update or rename a thread."""
+    title: Optional[str] = None
+    category: Optional[str] = None
 
 
 class MessageResponse(BaseModel):

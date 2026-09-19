@@ -1,0 +1,82 @@
+[
+  {
+    "id": "tenancy-001",
+    "act": "Rent Control & Tenancy Law",
+    "section": "Tenant Right 1",
+    "title": "Right to peaceful possession",
+    "year": "1948",
+    "domain": "tenancy_law",
+    "source_type": "statute",
+    "content": "Right to peaceful possession: Once a property is rented, the tenant has the right to peaceful possession without interference or unauthorized intrusion from the landlord."
+  },
+  {
+    "id": "tenancy-002",
+    "act": "Rent Control & Tenancy Law",
+    "section": "Tenant Right 2",
+    "title": "Right to essential services",
+    "year": "1948",
+    "domain": "tenancy_law",
+    "source_type": "statute",
+    "content": "Right to essential services: Landlords cannot cut off essential utilities like electricity, water supply, sewage, or gas to force a tenant to vacate."
+  },
+  {
+    "id": "tenancy-003",
+    "act": "Rent Control & Tenancy Law",
+    "section": "Tenant Right 3",
+    "title": "Protection against arbitrary eviction",
+    "year": "1948",
+    "domain": "tenancy_law",
+    "source_type": "statute",
+    "content": "Right against eviction: A tenant cannot be evicted without following due process of law and statutory notice periods as specified in State Rent Control Acts."
+  },
+  {
+    "id": "tenancy-004",
+    "act": "Rent Control & Tenancy Law",
+    "section": "Tenant Right 4",
+    "title": "Right to rent receipts",
+    "year": "1948",
+    "domain": "tenancy_law",
+    "source_type": "statute",
+    "content": "Right to receipt: Tenants have the right to demand and receive written receipts for all rent payments made to the landlord."
+  },
+  {
+    "id": "tenancy-005",
+    "act": "Rent Control & Tenancy Law",
+    "section": "Tenant Right 5",
+    "title": "Right to repairs and maintenance",
+    "year": "1948",
+    "domain": "tenancy_law",
+    "source_type": "statute",
+    "content": "Right to repairs: Tenants can request necessary structural repairs for the rented property, with obligations governed by state laws and agreements."
+  },
+  {
+    "id": "tenancy-006",
+    "act": "Rent Control & Tenancy Law",
+    "section": "Tenant Right 6",
+    "title": "Protection against arbitrary rent increases",
+    "year": "1948",
+    "domain": "tenancy_law",
+    "source_type": "statute",
+    "content": "Right against arbitrary rent increase: Rent increases are restricted to agreed terms or standard rent ceilings prescribed under State Rent Control Acts."
+  },
+  {
+    "id": "tenancy-007",
+    "act": "Rent Control & Tenancy Law",
+    "section": "Tenant Right 7",
+    "title": "Right to privacy and notice",
+    "year": "1948",
+    "domain": "tenancy_law",
+    "source_type": "statute",
+    "content": "Right to privacy: Landlords must provide prior notice before visiting or inspecting the rented property, respecting tenant privacy."
+  },
+  {
+    "id": "tenancy-008",
+    "act": "Rent Control & Tenancy Law",
+    "section": "Tenant Right 8",
+    "title": "Right to return of security deposit",
+    "year": "1948",
+    "domain": "tenancy_law",
+    "source_type": "statute",
+    "content": "Right to return of security deposit: Upon vacating the premises in good condition (subject to normal wear and tear), tenants are legally entitled to refund of their security deposit."
+  }
+]

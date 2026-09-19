@@ -58,3 +58,25 @@ def delete_document(document_id: str, db: Session = Depends(get_db)):
     db.commit()
     logger.info("Deleted document %s from database", document_id)
     return None
+
+
+@router.get(
+    "/{document_id}",
+    response_model=DocumentResponse,
+    responses={404: {"model": ErrorResponse}},
+    summary="Get document details by ID",
+)
+def get_document(document_id: str, db: Session = Depends(get_db)):
+    doc = db.query(DocumentDB).filter(DocumentDB.id == document_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail=f"Document '{document_id}' not found")
+    return DocumentResponse(
+        id=doc.id,
+        name=doc.name,
+        size=doc.size,
+        pages=doc.pages,
+        status=doc.status,
+        chunk_count=doc.chunk_count,
+        category=doc.category,
+        uploaded_at=doc.uploaded_at.strftime("%b %d, %Y %I:%M %p"),
+    )

@@ -1,0 +1,52 @@
+[
+  {
+    "id": "bsa-sec-2",
+    "act": "Bharatiya Sakshya Adhiniyam",
+    "section": "2",
+    "title": "Definition of Evidence",
+    "year": "2023",
+    "domain": "law_of_evidence",
+    "source_type": "statute",
+    "content": "Section 2(1)(e) BSA: Evidence means and includes —\n(i) all statements which the Court permits or requires to be made before it by witnesses, in relation to matters of fact under inquiry; such statements are called oral evidence;\n(ii) all documents including electronic or digital records produced for the inspection of the Court; such documents are called documentary evidence.\n\nStatutory Note: Corresponds to Section 3 of the Indian Evidence Act, 1872."
+  },
+  {
+    "id": "bsa-sec-22",
+    "act": "Bharatiya Sakshya Adhiniyam",
+    "section": "22",
+    "title": "Confession to police officer not to be proved",
+    "year": "2023",
+    "domain": "law_of_evidence",
+    "source_type": "statute",
+    "content": "Section 22 BSA: Confession to police inadmissible —\nNo confession made to a police officer shall be proved as against a person accused of any offence.\nSection 23 provides that no confession made by any person whilst he is in the custody of a police officer, unless it be made in the immediate presence of a Magistrate, shall be proved as against such person.\n\nStatutory Note: Corresponds to Section 25 and Section 26 of the Indian Evidence Act, 1872."
+  },
+  {
+    "id": "bsa-sec-57",
+    "act": "Bharatiya Sakshya Adhiniyam",
+    "section": "57",
+    "title": "Primary evidence",
+    "year": "2023",
+    "domain": "law_of_evidence",
+    "source_type": "statute",
+    "content": "Section 57 BSA: Primary evidence means the document itself produced for the inspection of the Court.\nExplanation 1: Where a document is executed in several parts, each part is primary evidence of the document.\nExplanation 2: Where a document is executed in counterpart, each counterpart being executed by one or some of the parties only, each counterpart is primary evidence as against the parties executing it.\nExplanation 3: Where a number of documents are all made by one uniform process, as in the case of printing, lithography, or photography, each is primary evidence of the contents of the rest.\n\nStatutory Note: Corresponds to Section 62 of the Indian Evidence Act, 1872."
+  },
+  {
+    "id": "bsa-sec-61",
+    "act": "Bharatiya Sakshya Adhiniyam",
+    "section": "61",
+    "title": "Electronic and digital records as evidence",
+    "year": "2023",
+    "domain": "law_of_evidence",
+    "source_type": "statute",
+    "content": "Section 61 BSA: Admissibility of electronic records —\nNothing in this Adhiniyam shall apply to deny the admissibility, validity or enforceability of any electronic or digital record as evidence, such as server logs, documents on computers, messages, website contents, voice mail, messages on social media, emails, etc., on the sole ground that it is an electronic or digital record.\nElectronic records shall be proved in accordance with Section 63 (certificate requirements).\n\nStatutory Note: Replaces and modernizes Section 65A and Section 65B of the Indian Evidence Act, 1872."
+  },
+  {
+    "id": "bsa-sec-104",
+    "act": "Bharatiya Sakshya Adhiniyam",
+    "section": "104",
+    "title": "Burden of proof",
+    "year": "2023",
+    "domain": "law_of_evidence",
+    "source_type": "statute",
+    "content": "Section 104 BSA: Burden of proof —\nWhoever desires any Court to give judgment as to any legal right or liability dependent on the existence of facts which he asserts, must prove that those facts exist.\nWhen a person is bound to prove the existence of any fact, it is said that the burden of proof lies on that person.\nIn criminal cases, the general burden is always upon the prosecution to prove the guilt of the accused beyond reasonable doubt.\n\nStatutory Note: Corresponds to Section 101 of the Indian Evidence Act, 1872."
+  }
+]

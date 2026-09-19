@@ -49,12 +49,38 @@ export default function SourcesPage() {
     fetchSources()
   }, [])
 
-  const filteredSources = sources.filter(
-    (s) =>
+  const [selectedCategory, setSelectedCategory] = useState<any>(null)
+
+  const filteredSources = sources.filter((s) => {
+    const queryMatch =
       s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.excerpt.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (s.citation && s.citation.toLowerCase().includes(searchQuery.toLowerCase()))
-  )
+
+    if (!queryMatch) return false
+
+    if (selectedCategory) {
+      const text = `${s.title} ${s.citation || ""} ${s.excerpt}`.toLowerCase()
+      if (selectedCategory === "Criminal Law") {
+        return text.includes("criminal") || text.includes("ipc") || text.includes("bns") || text.includes("penal") || text.includes("murder") || text.includes("cheating")
+      }
+      if (selectedCategory === "Constitution") {
+        return text.includes("constitution") || text.includes("article") || text.includes("fundamental")
+      }
+      if (selectedCategory === "Procedure") {
+        return text.includes("procedure") || text.includes("crpc") || text.includes("bnss") || text.includes("bail") || text.includes("fir")
+      }
+      if (selectedCategory === "Tax") {
+        return text.includes("tax") || text.includes("cit") || text.includes("income")
+      }
+      if (selectedCategory === "Property") {
+        return text.includes("property") || text.includes("tenant") || text.includes("rent") || text.includes("lease")
+      }
+      return text.includes(String(selectedCategory).toLowerCase())
+    }
+
+    return true
+  })
 
   const caseSources = filteredSources.filter((s) => s.type === "case")
   const statuteSources = filteredSources.filter(
@@ -92,7 +118,11 @@ export default function SourcesPage() {
         </header>
 
         <div className="mt-6">
-          <CategoryChips categories={categories} />
+          <CategoryChips
+            categories={categories}
+            value={selectedCategory}
+            onChange={setSelectedCategory}
+          />
         </div>
 
         <Tabs defaultValue="all" className="mt-8">

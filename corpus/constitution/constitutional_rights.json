@@ -1,0 +1,102 @@
+[
+  {
+    "id": "const-art-14",
+    "act": "Constitution of India",
+    "section": "Article 14",
+    "title": "Equality before law and equal protection of the laws",
+    "year": "1950",
+    "domain": "constitutional_law",
+    "source_type": "statute",
+    "content": "Article 14: Right to Equality — The State shall not deny to any person equality before the law or the equal protection of the laws within the territory of India. Prohibits discrimination and arbitrary state action."
+  },
+  {
+    "id": "const-art-15",
+    "act": "Constitution of India",
+    "section": "Article 15",
+    "title": "Prohibition of discrimination on grounds of religion, race, caste, sex or place of birth",
+    "year": "1950",
+    "domain": "constitutional_law",
+    "source_type": "statute",
+    "content": "Article 15: Prohibition of discrimination — The State shall not discriminate against any citizen on grounds only of religion, race, caste, sex, place of birth or any of them."
+  },
+  {
+    "id": "const-art-19",
+    "act": "Constitution of India",
+    "section": "Article 19",
+    "title": "Protection of certain rights regarding freedom of speech, etc.",
+    "year": "1950",
+    "domain": "constitutional_law",
+    "source_type": "statute",
+    "content": "Article 19: Protection of Fundamental Freedoms — Guarantees to all citizens the rights to: (a) freedom of speech and expression; (b) assemble peaceably and without arms; (c) form associations or unions; (d) move freely throughout the territory of India; (e) reside and settle in any part of India; and (g) practise any profession, trade or business, subject to reasonable restrictions under clauses (2) to (6)."
+  },
+  {
+    "id": "const-art-21",
+    "act": "Constitution of India",
+    "section": "Article 21",
+    "title": "Protection of life and personal liberty",
+    "year": "1950",
+    "domain": "constitutional_law",
+    "source_type": "statute",
+    "content": "Article 21: Protection of Life and Personal Liberty — No person shall be deprived of his life or personal liberty except according to procedure established by law. Judicially expanded to include right to dignity, right to privacy, right to livelihood, right to health, clean environment, and right to free legal aid."
+  },
+  {
+    "id": "const-art-21A",
+    "act": "Constitution of India",
+    "section": "Article 21A",
+    "title": "Right to education",
+    "year": "1950",
+    "domain": "constitutional_law",
+    "source_type": "statute",
+    "content": "Article 21A: Right to Education — The State shall provide free and compulsory education to all children of the age of six to fourteen years in such manner as the State may, by law, determine."
+  },
+  {
+    "id": "const-art-22",
+    "act": "Constitution of India",
+    "section": "Article 22",
+    "title": "Protection against arrest and detention in certain cases",
+    "year": "1950",
+    "domain": "constitutional_law",
+    "source_type": "statute",
+    "content": "Article 22: Protection against Arrest and Detention — Guarantees: (1) right to be informed of grounds of arrest; (2) right to consult and be defended by a legal practitioner of choice; (3) right to be produced before nearest magistrate within 24 hours; and (4) legal safeguards against arbitrary preventive detention."
+  },
+  {
+    "id": "const-art-23-24",
+    "act": "Constitution of India",
+    "section": "Articles 23 & 24",
+    "title": "Right against exploitation",
+    "year": "1950",
+    "domain": "constitutional_law",
+    "source_type": "statute",
+    "content": "Articles 23 & 24: Right against Exploitation — Article 23 prohibits traffic in human beings, begar and forced labor. Article 24 prohibits employment of children below the age of fourteen years in factories, mines or hazardous occupations."
+  },
+  {
+    "id": "const-art-25-28",
+    "act": "Constitution of India",
+    "section": "Articles 25-28",
+    "title": "Right to freedom of religion",
+    "year": "1950",
+    "domain": "constitutional_law",
+    "source_type": "statute",
+    "content": "Articles 25-28: Freedom of Religion — Guarantees freedom of conscience and free profession, practice and propagation of religion (Article 25), freedom to manage religious affairs (Article 26), freedom from payment of taxes for promotion of religion (Article 27), and freedom from attendance at religious instruction in State-aided schools (Article 28)."
+  },
+  {
+    "id": "const-art-29-30",
+    "act": "Constitution of India",
+    "section": "Articles 29-30",
+    "title": "Cultural and educational rights of minorities",
+    "year": "1950",
+    "domain": "constitutional_law",
+    "source_type": "statute",
+    "content": "Articles 29-30: Minority Rights — Protects interests of minorities to conserve distinct language, script or culture (Article 29), and guarantees rights of religious and linguistic minorities to establish and administer educational institutions (Article 30)."
+  },
+  {
+    "id": "const-art-32",
+    "act": "Constitution of India",
+    "section": "Article 32",
+    "title": "Remedies for enforcement of fundamental rights",
+    "year": "1950",
+    "domain": "constitutional_law",
+    "source_type": "statute",
+    "content": "Article 32: Right to Constitutional Remedies — Right to move the Supreme Court for the enforcement of Fundamental Rights. The Supreme Court has power to issue directions, orders or prerogative writs including habeas corpus, mandamus, prohibition, quo warranto and certiorari."
+  }
+]

@@ -1,4 +1,7 @@
-import { Sparkles, User, Copy, ThumbsUp, ThumbsDown, Bookmark } from "lucide-react"
+"use client"
+
+import { useState } from "react"
+import { Sparkles, User, Copy, Check, ThumbsUp, ThumbsDown, Bookmark } from "lucide-react"
 import type { Message } from "@/lib/legal-data"
 import { ConfidenceBadge } from "./confidence-badge"
 import { SourceCard } from "./source-card"
@@ -30,6 +33,28 @@ function formatContent(content: string) {
 }
 
 export function ChatMessage({ message }: { message: Message }) {
+  const [copied, setCopied] = useState(false)
+  const [isSaved, setIsSaved] = useState(false)
+  const [feedback, setFeedback] = useState<"up" | "down" | null>(null)
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(message.content)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (e) {
+      console.error("Failed to copy:", e)
+    }
+  }
+
+  const handleToggleSave = () => {
+    setIsSaved((prev) => !prev)
+  }
+
+  const handleFeedback = (type: "up" | "down") => {
+    setFeedback((prev) => (prev === type ? null : type))
+  }
+
   if (message.role === "user") {
     return (
       <div className="flex justify-end">
@@ -92,34 +117,57 @@ export function ChatMessage({ message }: { message: Message }) {
         )}
 
         <div className="flex items-center gap-1 pt-1">
-          <MessageAction icon={Copy} label="Copy" />
-          <MessageAction icon={Bookmark} label="Save" />
+          <button
+            type="button"
+            aria-label="Copy"
+            onClick={handleCopy}
+            title={copied ? "Copied" : "Copy answer"}
+            className={cn(
+              "inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+              copied && "text-emerald-500 hover:text-emerald-600"
+            )}
+          >
+            {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+          </button>
+          <button
+            type="button"
+            aria-label="Save"
+            onClick={handleToggleSave}
+            title={isSaved ? "Saved" : "Save answer"}
+            className={cn(
+              "inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+              isSaved && "text-primary fill-primary"
+            )}
+          >
+            <Bookmark className={cn("size-3.5", isSaved && "fill-current")} />
+          </button>
           <div className="mx-1 h-4 w-px bg-border" />
-          <MessageAction icon={ThumbsUp} label="Helpful" />
-          <MessageAction icon={ThumbsDown} label="Not helpful" />
+          <button
+            type="button"
+            aria-label="Helpful"
+            onClick={() => handleFeedback("up")}
+            title="Mark as helpful"
+            className={cn(
+              "inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+              feedback === "up" && "text-emerald-500 bg-emerald-500/10"
+            )}
+          >
+            <ThumbsUp className="size-3.5" />
+          </button>
+          <button
+            type="button"
+            aria-label="Not helpful"
+            onClick={() => handleFeedback("down")}
+            title="Mark as unhelpful"
+            className={cn(
+              "inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+              feedback === "down" && "text-rose-500 bg-rose-500/10"
+            )}
+          >
+            <ThumbsDown className="size-3.5" />
+          </button>
         </div>
       </div>
     </div>
-  )
-}
-
-function MessageAction({
-  icon: Icon,
-  label,
-}: {
-  icon: typeof Copy
-  label: string
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      className={cn(
-        "inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors",
-        "hover:bg-muted hover:text-foreground"
-      )}
-    >
-      <Icon className="size-3.5" />
-    </button>
   )
 }

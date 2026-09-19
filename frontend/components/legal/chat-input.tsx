@@ -56,8 +56,57 @@ export function ChatInput({
     }
   }
 
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
+  const [isUploadingFile, setIsUploadingFile] = React.useState(false)
+  const [attachedFileName, setAttachedFileName] = React.useState<string | null>(null)
+
+  const handleFileClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsUploadingFile(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"
+      const res = await fetch(`${API_URL}/upload`, {
+        method: "POST",
+        body: formData,
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        setAttachedFileName(data.name || file.name)
+        setValue((prev) => {
+          const prefix = `[Referenced Document: ${data.name || file.name}]\n`
+          return prev.startsWith("[Referenced Document:") ? prev : `${prefix}${prev}`
+        })
+      } else {
+        console.error("Failed to upload document:", res.statusText)
+      }
+    } catch (err) {
+      console.error("Document upload error:", err)
+    } finally {
+      setIsUploadingFile(false)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""
+      }
+    }
+  }
+
   return (
     <div className={cn("space-y-2", className)}>
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        className="hidden"
+        accept=".pdf,.docx,.txt"
+      />
       <div className="flex flex-wrap gap-1.5">
         {suggestions.map((s) => (
           <button
@@ -73,6 +122,21 @@ export function ChatInput({
       </div>
 
       <div className="rounded-2xl border border-border bg-card/80 shadow-sm transition-colors focus-within:border-primary/40 focus-within:ring-1 focus-within:ring-primary/20">
+        {attachedFileName && (
+          <div className="flex items-center justify-between border-b border-border/40 bg-muted/20 px-4 py-1.5 text-xs text-primary">
+            <span className="truncate">Attached & Indexed: {attachedFileName}</span>
+            <button
+              type="button"
+              onClick={() => {
+                setAttachedFileName(null)
+                setValue((prev) => prev.replace(/^\[Referenced Document:.*?\]\n?/, ""))
+              }}
+              className="ml-2 text-muted-foreground hover:text-foreground"
+            >
+              ×
+            </button>
+          </div>
+        )}
         <textarea
           ref={ref}
           value={value}
@@ -88,8 +152,13 @@ export function ChatInput({
             <button
               type="button"
               aria-label="Attach file"
-              className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
-              disabled={isSubmitting || disabled}
+              onClick={handleFileClick}
+              title={isUploadingFile ? "Indexing document..." : "Attach and index document (PDF, DOCX, TXT)"}
+              className={cn(
+                "inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50",
+                isUploadingFile && "animate-pulse text-primary"
+              )}
+              disabled={isSubmitting || isUploadingFile || disabled}
             >
               <Paperclip className="size-4" />
             </button>

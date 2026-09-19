@@ -16,6 +16,7 @@ from backend.app.models.schemas import (
 )
 from backend.app.services.rag.retriever import FAISSRetriever
 from backend.app.services.llm.generator import LLMGenerator
+from backend.app.services.rag.query_classifier import classify_query
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,42 @@ class RAGPipeline:
         retrieved = self.retriever.retrieve(message)
         logger.info("Retrieved %d documents", len(retrieved))
 
+        # Fallback Rule 1: Zero retrieved documents
+        if not retrieved:
+            logger.info("No documents retrieved — returning honest fallback")
+            return ChatResponse(
+                answer="Relevant information not found in the indexed corpus.",
+                sources=[],
+                confidence="low",
+            )
+
+        # Fallback Rule 2: Explicit statutory section requested but absent from retrieved chunks
+        classification = classify_query(message)
+        if classification.detected_sections:
+            matched_any = False
+            for sec_item in classification.detected_sections:
+                s_target = sec_item["section"].strip().lower()
+                for r in retrieved:
+                    meta_sec = str(r.get("metadata", {}).get("section", "")).strip().lower()
+                    if (
+                        s_target == meta_sec
+                        or f"section {s_target}" in meta_sec
+                        or f"article {s_target}" in meta_sec
+                        or s_target in meta_sec
+                    ):
+                        matched_any = True
+                        break
+                if matched_any:
+                    break
+
+            if not matched_any:
+                logger.info("Explicit target section not found in retrieved chunks — returning honest fallback")
+                return ChatResponse(
+                    answer="Relevant information not found in the indexed corpus.",
+                    sources=[],
+                    confidence="low",
+                )
+
         # Step 2: Build context from retrieved chunks
         context = self._build_context(retrieved)
 
@@ -71,7 +108,10 @@ class RAGPipeline:
         sources = self._build_sources(retrieved)
 
         # Step 6: Determine confidence
-        confidence = self._compute_confidence(retrieved, answer)
+        if answer == "Relevant information not found in the indexed corpus.":
+            confidence = "low"
+        else:
+            confidence = self._compute_confidence(retrieved, answer)
 
         return ChatResponse(
             answer=answer,
@@ -128,19 +168,38 @@ class RAGPipeline:
             metadata = doc.get("metadata") or {}
             sec = metadata.get("section")
             raw_title = metadata.get("title")
-            act = metadata.get("act", "IPC")
+            act = metadata.get("act", "Indian Statutory Law")
+            source_type = metadata.get("source_type")
+            domain = metadata.get("domain")
+            raw_year = metadata.get("year")
 
-            if sec and raw_title:
-                title = f"{act} Section {sec}: {raw_title}"
-                citation = f"Indian Penal Code, 1860 — Section {sec}"
+            year = int(raw_year) if raw_year and str(raw_year).isdigit() else None
+
+            if source_type == "case_law":
+                title = raw_title or f"Case Law: {act}"
+                citation = f"{act} ({year})" if year else act
+                doc_type = "precedent"
+                jurisdiction = "Supreme Court of India"
+            elif source_type == "qa":
+                title = f"Legal Q&A: {raw_title}" if raw_title else "Indian Legal Guidance"
+                citation = "Indian Legal Procedures & Jurisprudence"
+                doc_type = "commentary"
+                jurisdiction = "Courts of India / Judicial Precedents"
+            elif sec and raw_title:
+                sec_label = sec if ("article" in sec.lower() or "tenant" in sec.lower()) else f"Section {sec}"
+                title = f"{act} {sec_label}: {raw_title}"
+                citation = f"{act} — {sec_label}"
                 doc_type = "statute"
                 jurisdiction = "Supreme Court / Statutory Law of India"
-                year = 1860
+            elif raw_title:
+                title = f"{act}: {raw_title}"
+                citation = act
+                doc_type = source_type or "statute"
+                jurisdiction = "Statutory Law of India"
             else:
                 title, doc_type = self._infer_metadata(content)
                 citation = None
                 jurisdiction = None
-                year = None
 
             sources.append(
                 SourceResponse(
@@ -148,11 +207,15 @@ class RAGPipeline:
                     title=title,
                     citation=citation,
                     jurisdiction=jurisdiction,
-                    year=year,
+                    year=year or 1950,
                     excerpt=content[:500] if len(content) > 500 else content,
                     url=None,
                     type=doc_type,
                     score=round(doc.get("score", 0.0), 4) if doc.get("score") is not None else None,
+                    act=act,
+                    section=sec,
+                    domain=domain,
+                    source_type=source_type or doc_type,
                 )
             )
 

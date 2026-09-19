@@ -1,7 +1,7 @@
 "use client"
 
 import { Sparkles, ChevronDown, Globe2, Filter, MessageSquare } from "lucide-react"
-import { useEffect, Suspense } from "react"
+import { useEffect, useRef, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { ChatMessage } from "@/components/legal/chat-message"
 import { ChatInput } from "@/components/legal/chat-input"
@@ -15,6 +15,8 @@ import { useChat } from "@/hooks/use-chat"
 function ChatContent() {
   const searchParams = useSearchParams()
   const threadIdParam = searchParams.get("thread")
+  const promptParam = searchParams.get("prompt")
+  const promptProcessedRef = useRef(false)
   const chat = useChat([])
 
   useEffect(() => {
@@ -24,6 +26,13 @@ function ChatContent() {
       chat.clearMessages()
     }
   }, [threadIdParam])
+
+  useEffect(() => {
+    if (promptParam && !promptProcessedRef.current && !threadIdParam && chat.messages.length === 0 && !chat.isLoading) {
+      promptProcessedRef.current = true
+      handleSendMessage(promptParam)
+    }
+  }, [promptParam, threadIdParam, chat.messages.length, chat.isLoading])
 
   useEffect(() => {
     chat.scrollToBottom()

@@ -10,6 +10,8 @@ import {
   ListChecks,
   ShieldAlert,
   Trash2,
+  RefreshCw,
+  Eye,
 } from "lucide-react"
 import { useState } from "react"
 import Link from "next/link"
@@ -18,16 +20,31 @@ import { CategoryTag } from "@/components/legal/category-chips"
 import { ConfidenceBadge } from "@/components/legal/confidence-badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import { useDocumentUpload } from "@/hooks/use-document-upload"
 import type { UploadedDoc } from "@/lib/legal-data"
 
 export default function DocumentsPage() {
   const [searchQuery, setSearchQuery] = useState("")
-  const { files, removeFile } = useDocumentUpload([])
+  const { files, removeFile, fetchDocuments } = useDocumentUpload([])
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null)
+  const [viewingDoc, setViewingDoc] = useState<UploadedDoc | null>(null)
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   const selectedDoc = files.find((f) => f.id === selectedDocId) || files[0] || null
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    await fetchDocuments()
+    setTimeout(() => setIsRefreshing(false), 500)
+  }
 
   const filteredDocs = files.filter(
     (doc) =>
@@ -38,23 +55,91 @@ export default function DocumentsPage() {
   return (
     <main className="flex-1 overflow-y-auto">
       <div className="mx-auto max-w-6xl px-4 py-8 lg:px-8 lg:py-10">
-        <PageHeader searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+        <PageHeader
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onRefresh={handleRefresh}
+          isRefreshing={isRefreshing}
+        />
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_360px]">
           <div className="space-y-6">
-            <DocumentUploadCard />
+            <DocumentUploadCard onUploadSuccess={fetchDocuments} />
             <DocList
               docs={filteredDocs}
               selectedId={selectedDoc?.id || null}
               onSelectDoc={(doc) => setSelectedDocId(doc.id)}
+              onViewDoc={(doc) => setViewingDoc(doc)}
               onRemoveDoc={removeFile}
             />
           </div>
           <div className="space-y-6">
-            <ActiveDocAnalysis doc={selectedDoc} />
+            <ActiveDocAnalysis
+              doc={selectedDoc}
+              onViewDetails={() => setViewingDoc(selectedDoc)}
+            />
           </div>
         </div>
       </div>
+
+      {/* Document View Details Modal */}
+      <Dialog open={Boolean(viewingDoc)} onOpenChange={(open) => !open && setViewingDoc(null)}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 font-serif text-lg">
+              <FileText className="size-5 text-primary" />
+              {viewingDoc?.name}
+            </DialogTitle>
+            <DialogDescription className="font-mono text-xs text-muted-foreground">
+              Document ID: {viewingDoc?.id} · {viewingDoc?.uploadedAt}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="rounded-lg border border-border bg-card/60 p-3">
+                <span className="text-muted-foreground">Category</span>
+                <p className="mt-1 font-medium">{viewingDoc?.category || "General Legal"}</p>
+              </div>
+              <div className="rounded-lg border border-border bg-card/60 p-3">
+                <span className="text-muted-foreground">File Size</span>
+                <p className="mt-1 font-medium">{viewingDoc?.size}</p>
+              </div>
+              <div className="rounded-lg border border-border bg-card/60 p-3">
+                <span className="text-muted-foreground">Status</span>
+                <p className="mt-1 font-medium text-emerald-500 uppercase font-mono text-[10px]">
+                  {viewingDoc?.status || "Indexed"}
+                </p>
+              </div>
+              <div className="rounded-lg border border-border bg-card/60 p-3">
+                <span className="text-muted-foreground">Pages / Scope</span>
+                <p className="mt-1 font-medium">{viewingDoc?.pages || 1} pages</p>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-border bg-background/50 p-4">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                Corpus Indexing Summary
+              </span>
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                This document has been tokenized, split using recursive chunking with 100-character overlap, and embedded into the local FAISS index using <code className="text-primary font-mono text-[11px]">law-ai/InLegalBERT</code> (768 dimensions). Its passages are immediately eligible for similarity retrieval during legal consultations.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" size="sm" onClick={() => setViewingDoc(null)}>
+                Close
+              </Button>
+              <Button asChild size="sm" className="gap-1.5">
+                <Link href="/chat">
+                  <Sparkles className="size-3.5" />
+                  Query in Consultation
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </main>
   )
 }
@@ -62,9 +147,13 @@ export default function DocumentsPage() {
 function PageHeader({
   searchQuery,
   onSearchChange,
+  onRefresh,
+  isRefreshing,
 }: {
   searchQuery: string
   onSearchChange: (query: string) => void
+  onRefresh: () => void
+  isRefreshing: boolean
 }) {
   return (
     <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -80,7 +169,17 @@ function PageHeader({
           privately into FAISS and answers questions grounded in your documents.
         </p>
       </div>
-      <div className="flex gap-2">
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onRefresh}
+          disabled={isRefreshing}
+          className="h-9 gap-1.5 rounded-full border-border bg-card/50 text-xs"
+        >
+          <RefreshCw className={cn("size-3.5", isRefreshing && "animate-spin")} />
+          Refresh
+        </Button>
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -120,11 +219,13 @@ function DocList({
   docs,
   selectedId,
   onSelectDoc,
+  onViewDoc,
   onRemoveDoc,
 }: {
   docs: UploadedDoc[]
   selectedId: string | null
   onSelectDoc: (doc: UploadedDoc) => void
+  onViewDoc: (doc: UploadedDoc) => void
   onRemoveDoc: (id: string) => void
 }) {
   return (
@@ -185,16 +286,28 @@ function DocList({
                   <Icon className="size-3" />
                   {cfg.label}
                 </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onRemoveDoc(doc.id)
-                  }}
-                  aria-label="Delete document"
-                  className="size-8 flex items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                >
-                  <Trash2 className="size-3.5" />
-                </button>
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onViewDoc(doc)
+                    }}
+                    aria-label="View document details"
+                    className="size-8 flex items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                  >
+                    <Eye className="size-3.5" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onRemoveDoc(doc.id)
+                    }}
+                    aria-label="Delete document"
+                    className="size-8 flex items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <Trash2 className="size-3.5" />
+                  </button>
+                </div>
               </li>
             )
           })}
@@ -206,8 +319,10 @@ function DocList({
 
 function ActiveDocAnalysis({
   doc,
+  onViewDetails,
 }: {
   doc: UploadedDoc | null
+  onViewDetails?: () => void
 }) {
   if (!doc) {
     return (
@@ -261,8 +376,17 @@ function ActiveDocAnalysis({
       </div>
 
       <div className="mt-5 flex gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5"
+          onClick={onViewDetails}
+        >
+          <Eye className="size-3.5" />
+          View Details
+        </Button>
         <Button asChild size="sm" className="flex-1 gap-1.5">
-          <Link href="/chat">
+          <Link href={`/chat?prompt=${encodeURIComponent(`Analyze the key legal implications and provisions in ${doc.name}`)}`}>
             <Sparkles className="size-3.5" />
             Query this document
           </Link>
